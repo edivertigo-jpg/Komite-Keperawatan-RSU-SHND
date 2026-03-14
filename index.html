@@ -911,7 +911,7 @@ function renderTable() {
     return `<tr class="${expRow}">
       <td><div class="foto-cell">${avatarHtml(r.foto, '36px')}</div></td>
       <td class="mono">${r.no}</td>
-      <td class="nm"><a href="#" onclick="openDetail(${r.no});return false" style="color:inherit;text-decoration:none;cursor:pointer">${r.nama||'—'}</a></td>
+      <td class="nm"><a href="#" onclick="openDetail('${r.rowIndex}');return false" style="color:inherit;text-decoration:none;cursor:pointer">${r.nama||'—'}</a></td>
       <td style="max-width:160px;white-space:normal;font-size:11px">${r.unit||'—'}</td>
       <td class="mono">${r.nip||'—'}</td>
       <td>${statusB(r.status)}</td>
@@ -923,8 +923,8 @@ function renderTable() {
       <td>${dateB(r.rkkAkhir)}</td>
       <td>
         <div style="display:flex;gap:5px">
-          <button class="btn btn-ghost btn-icon btn-sm" onclick="openDetail(${r.no})" title="Lihat detail">👁</button>
-          <button class="btn btn-amber btn-icon btn-sm" onclick="openEdit(${r.no})" title="Edit">✏️</button>
+          <button class="btn btn-ghost btn-icon btn-sm" onclick="openDetail('${r.rowIndex}')" title="Lihat detail">👁</button>
+          <button class="btn btn-amber btn-icon btn-sm" onclick="openEdit('${r.rowIndex}')" title="Edit">✏️</button>
           <button class="btn btn-rose btn-icon btn-sm" onclick="confirmDelete(${r.no})" title="Hapus">🗑</button>
         </div>
       </td>
@@ -995,8 +995,8 @@ function openAdd() {
 // ═══════════════════════════════════════════════════════════
 //  MODAL: EDIT
 // ═══════════════════════════════════════════════════════════
-function openEdit(no) {
-  const r = allData.find(x => x.no === no);
+function openEdit(rowIndex) {
+  const r = allData.find(x => Number(x.rowIndex) === Number(rowIndex));
   if (!r) return;
   resetForm();
   document.getElementById('formTitle').textContent = '✏️ Edit Perawat';
@@ -1120,6 +1120,16 @@ async function submitForm() {
       rkkDoc:     rkkDocUrl,
     };
 
+    // ── ANTI DUPLIKAT ─────────────────────────────────────────
+    if (mode === 'add') {
+      const duplikat = cekDuplikat(data);
+      if (duplikat) {
+        showToast(`⚠️ Data ditolak! Mirip dengan: "${duplikat.nama}" (${duplikat.similarity}% sama)`, true);
+        btn.disabled = false; btn.textContent = '💾 Simpan';
+        return;
+      }
+    }
+
     const res = await callAPI({ action: mode, data });
     if (!res.success) throw new Error(res.error || 'Gagal menyimpan');
 
@@ -1209,8 +1219,8 @@ async function uploadFilePost(action, base64, mimeType, fileName, nama, prefix) 
 // ═══════════════════════════════════════════════════════════
 //  DETAIL MODAL
 // ═══════════════════════════════════════════════════════════
-function openDetail(no) {
-  const r = allData.find(x => x.no === no);
+function openDetail(rowIndex) {
+  const r = allData.find(x => Number(x.rowIndex) === Number(rowIndex));
   if (!r) return;
 
   document.getElementById('detailBody').innerHTML = `
@@ -1255,7 +1265,7 @@ function openDetail(no) {
 
   document.getElementById('detailFoot').innerHTML = `
     <button class="btn btn-ghost" onclick="closeModal('modalDetail')">Tutup</button>
-    <button class="btn btn-amber" onclick="openEdit(${r.no})">✏️ Edit</button>
+    <button class="btn btn-amber" onclick="openEdit('${r.rowIndex}')">✏️ Edit</button>
     <button class="btn btn-rose"  onclick="confirmDelete(${r.no})">🗑️ Hapus</button>
   `;
 
@@ -1278,8 +1288,11 @@ async function doDelete(no) {
   const btn = document.getElementById('confirmOkBtn');
   btn.disabled = true; btn.textContent = '⏳ Menghapus…';
   try {
-    const json = await callAPI({ action: 'delete', no: no });
-    if (!json.success) throw new Error(json.error);
+    const url = `${API}?_cb=${Date.now()}`;
+    const res = await fetch(url + `&action=delete&no=${encodeURIComponent(no)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || 'Gagal menghapus');
     showToast('✅ Data berhasil dihapus');
     closeModal('modalConfirm');
     await fetchData();
@@ -1356,6 +1369,67 @@ function resetForm() {
 // ═══════════════════════════════════════════════════════════
 //  API — semua pakai GET + encoded params (hindari CORS POST)
 // ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+//  ANTI DUPLIKAT
+// ═══════════════════════════════════════════════════════════
+function similarityScore(a, b) {
+  // Normalisasi: lowercase, hapus spasi berlebih, gelar, tanda baca
+  const clean = s => (s||'').toLowerCase()
+    .replace(/\b(ns|s\.kep|s\.kep\.|s\.kep\.ners|amd\.kep|skm|s\.km|str\.kep|s\.tr\.kep|dr|drg|m\.kes|m\.kep|ners)\b\.?/gi, '')
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ').trim();
+
+  const sa = clean(a);
+  const sb = clean(b);
+  if (!sa || !sb) return 0;
+  if (sa === sb) return 100;
+
+  // Cek NIP exact match = 100%
+  // (dipanggil terpisah)
+
+  // Levenshtein similarity
+  const longer  = sa.length > sb.length ? sa : sb;
+  const shorter = sa.length > sb.length ? sb : sa;
+  const longerLen = longer.length;
+  if (longerLen === 0) return 100;
+
+  // Edit distance
+  const costs = [];
+  for (let i = 0; i <= shorter.length; i++) {
+    let lastVal = i;
+    for (let j = 0; j <= longer.length; j++) {
+      if (i === 0) { costs[j] = j; }
+      else if (j > 0) {
+        let newVal = costs[j-1];
+        if (shorter[i-1] !== longer[j-1]) {
+          newVal = Math.min(Math.min(newVal, lastVal), costs[j]) + 1;
+        }
+        costs[j-1] = lastVal;
+        lastVal = newVal;
+      }
+    }
+    if (i > 0) costs[longer.length] = lastVal;
+  }
+  const dist = costs[longer.length];
+  return Math.round((1 - dist / longerLen) * 100);
+}
+
+function cekDuplikat(data) {
+  for (const r of allData) {
+    // NIP sama dan tidak kosong = duplikat 100%
+    if (data.nip && r.nip && data.nip.trim() === r.nip.trim()) {
+      return { ...r, similarity: 100, reason: 'NIP sama' };
+    }
+    // Similarity nama >= 90%
+    const sim = similarityScore(data.nama, r.nama);
+    if (sim >= 90) {
+      // Konfirmasi dengan unit juga mirip atau NIP kosong
+      return { ...r, similarity: sim, reason: 'Nama mirip' };
+    }
+  }
+  return null;
+}
+
 async function callAPI(params) {
   const qs = Object.entries(params)
     .map(([k, v]) => {
