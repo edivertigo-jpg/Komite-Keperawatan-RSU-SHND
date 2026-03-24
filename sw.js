@@ -1,27 +1,29 @@
 // ============================================================
 //  SERVICE WORKER — Dashboard Keperawatan SHND
-//  Versi cache: update angka ini tiap deploy baru
+//  PERBAIKAN: scope terbatas, tidak ganggu dashboard lain
+//  Update versi cache setiap deploy baru
 // ============================================================
-const CACHE_NAME = 'keperawatan-shnd-v1';
+const CACHE_NAME = 'keperawatan-shnd-v2';
 
-// File yang di-cache untuk offline
+// File yang di-cache — gunakan path RELATIF (tanpa leading slash)
+// agar SW bekerja di subfolder manapun (bukan hanya di root /)
 const CACHE_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json'
+  './',
+  './index.html',
+  './manifest.json'
 ];
 
 // ── INSTALL: cache assets utama ──────────────────────────────
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      console.log('[SW] Caching assets...');
+      console.log('[SW] Caching assets…');
       return cache.addAll(CACHE_ASSETS);
     }).then(() => self.skipWaiting())
   );
 });
 
-// ── ACTIVATE: hapus cache lama ───────────────────────────────
+// ── ACTIVATE: hapus cache lama, ambil kontrol langsung ───────
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
@@ -29,7 +31,7 @@ self.addEventListener('activate', event => {
         keys
           .filter(key => key !== CACHE_NAME)
           .map(key => {
-            console.log('[SW] Deleting old cache:', key);
+            console.log('[SW] Hapus cache lama:', key);
             return caches.delete(key);
           })
       )
@@ -37,25 +39,35 @@ self.addEventListener('activate', event => {
   );
 });
 
-// ── FETCH: strategi Network First ───────────────────────────
-// Prioritas jaringan, fallback ke cache kalau offline
+// ── FETCH: Network First, fallback Cache ─────────────────────
+// Hanya intercept request yang ada di dalam scope SW ini.
+// Request ke Google (API, Drive, dll.) dibiarkan langsung.
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
-  // Jangan intercept request ke Google Apps Script API
-  if (url.hostname.includes('script.google.com') ||
-      url.hostname.includes('googleapis.com') ||
-      url.hostname.includes('drive.google.com') ||
-      url.hostname.includes('lh3.googleusercontent.com')) {
-    return; // biarkan browser handle langsung
+  // Bypass: Google Apps Script & layanan Google lainnya
+  const bypassHosts = [
+    'script.google.com',
+    'googleapis.com',
+    'drive.google.com',
+    'lh3.googleusercontent.com',
+    'fonts.googleapis.com',
+    'fonts.gstatic.com',
+    'cdnjs.cloudflare.com'
+  ];
+  if (bypassHosts.some(h => url.hostname.includes(h))) {
+    return; // biarkan browser handle langsung (tidak di-intercept)
   }
 
-  // Untuk asset lokal: Network First, fallback Cache
+  // Bypass: request POST / non-GET (misal submit form, API call)
+  if (event.request.method !== 'GET') return;
+
+  // Untuk asset lokal: Network First → fallback Cache
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        // Simpan salinan response ke cache
-        if (response && response.status === 200 && event.request.method === 'GET') {
+        // Hanya cache response OK dari GET
+        if (response && response.status === 200) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
         }
@@ -67,7 +79,7 @@ self.addEventListener('fetch', event => {
           if (cached) return cached;
           // Fallback ke index.html untuk navigasi
           if (event.request.mode === 'navigate') {
-            return caches.match('/index.html');
+            return caches.match('./index.html');
           }
         });
       })

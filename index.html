@@ -1785,10 +1785,27 @@ async function doSyncMasaKerja() {
 
 <script>
 // Register Service Worker (PWA)
+// PENTING: gunakan path relatif + scope eksplisit agar SW hanya mengontrol
+// folder app ini, tidak mengganggu dashboard lain di domain yang sama.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then(reg => console.log('[PWA] Service Worker registered:', reg.scope))
+    // Deteksi base path secara otomatis (e.g. /keperawatan/ atau /)
+    const swPath = new URL('sw.js', document.baseURI).pathname;
+    const scope  = new URL('./', document.baseURI).pathname;
+    navigator.serviceWorker.register(swPath, { scope })
+      .then(reg => {
+        console.log('[PWA] SW registered. Scope:', reg.scope);
+        // Paksa update SW baru langsung aktif tanpa harus tutup tab
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              console.log('[PWA] Update tersedia, memuat ulang…');
+              window.location.reload();
+            }
+          });
+        });
+      })
       .catch(err => console.warn('[PWA] SW registration failed:', err));
   });
 }
