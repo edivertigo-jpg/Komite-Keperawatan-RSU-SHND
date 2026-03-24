@@ -1,87 +1,72 @@
 // ============================================================
-//  SERVICE WORKER — Dashboard Keperawatan SHND
-//  PERBAIKAN: scope terbatas, tidak ganggu dashboard lain
-//  Update versi cache setiap deploy baru
+//  SERVICE WORKER — Komite Keperawatan RSU SHND
+//  v4 — scope otomatis dari lokasi sw.js, aman multi-repo
 // ============================================================
-const CACHE_NAME = 'keperawatan-shnd-v2';
 
-// File yang di-cache — gunakan path RELATIF (tanpa leading slash)
-// agar SW bekerja di subfolder manapun (bukan hanya di root /)
+// BASE otomatis terdeteksi dari letak sw.js
+// Jika sw.js ada di /Komite-Keperawatan-RSU-SHND/sw.js
+// maka BASE = '/Komite-Keperawatan-RSU-SHND/'
+const BASE = self.location.pathname.replace(/sw\.js$/, '');
+const CACHE_NAME = 'komkep-shnd-v4';
+
 const CACHE_ASSETS = [
-  './',
-  './index.html',
-  './manifest.json'
+  BASE,
+  BASE + 'index.html',
+  BASE + 'manifest.json',
+  BASE + 'icon-192.png',
+  BASE + 'icon-512.png'
 ];
 
-// ── INSTALL: cache assets utama ──────────────────────────────
+// ── INSTALL ──────────────────────────────────────────────────
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      console.log('[SW] Caching assets…');
-      return cache.addAll(CACHE_ASSETS);
-    }).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(CACHE_ASSETS))
+      .then(() => self.skipWaiting())
   );
 });
 
-// ── ACTIVATE: hapus cache lama, ambil kontrol langsung ───────
+// ── ACTIVATE: bersihkan cache lama ───────────────────────────
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys
-          .filter(key => key !== CACHE_NAME)
-          .map(key => {
-            console.log('[SW] Hapus cache lama:', key);
-            return caches.delete(key);
-          })
-      )
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then(keys => Promise.all(
+        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
+      ))
+      .then(() => self.clients.claim())
   );
 });
 
-// ── FETCH: Network First, fallback Cache ─────────────────────
-// Hanya intercept request yang ada di dalam scope SW ini.
-// Request ke Google (API, Drive, dll.) dibiarkan langsung.
+// ── FETCH ────────────────────────────────────────────────────
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
-  // Bypass: Google Apps Script & layanan Google lainnya
-  const bypassHosts = [
-    'script.google.com',
-    'googleapis.com',
-    'drive.google.com',
-    'lh3.googleusercontent.com',
-    'fonts.googleapis.com',
-    'fonts.gstatic.com',
-    'cdnjs.cloudflare.com'
-  ];
-  if (bypassHosts.some(h => url.hostname.includes(h))) {
-    return; // biarkan browser handle langsung (tidak di-intercept)
-  }
+  // Lewati semua domain eksternal
+  if (url.origin !== self.location.origin) return;
 
-  // Bypass: request POST / non-GET (misal submit form, API call)
+  // Lewati non-GET
   if (event.request.method !== 'GET') return;
 
-  // Untuk asset lokal: Network First → fallback Cache
+  // KRITIS: hanya handle request di dalam scope BASE ini saja
+  // Request dari repo/app lain dibiarkan browser handle sendiri
+  if (!url.pathname.startsWith(BASE)) return;
+
+  // Network First → fallback Cache (untuk PWA offline)
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        // Hanya cache response OK dari GET
         if (response && response.status === 200) {
           const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
         }
         return response;
       })
-      .catch(() => {
-        // Offline: ambil dari cache
-        return caches.match(event.request).then(cached => {
-          if (cached) return cached;
-          // Fallback ke index.html untuk navigasi
-          if (event.request.mode === 'navigate') {
-            return caches.match('./index.html');
-          }
-        });
-      })
+      .catch(() =>
+        caches.match(event.request).then(cached =>
+          cached || (event.request.mode === 'navigate'
+            ? caches.match(BASE + 'index.html')
+            : undefined)
+        )
+      )
   );
 });

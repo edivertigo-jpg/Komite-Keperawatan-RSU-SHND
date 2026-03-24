@@ -1784,29 +1784,28 @@ async function doSyncMasaKerja() {
 </script>
 
 <script>
-// Register Service Worker (PWA)
-// PENTING: gunakan path relatif + scope eksplisit agar SW hanya mengontrol
-// folder app ini, tidak mengganggu dashboard lain di domain yang sama.
+// ── PWA: Service Worker Registration ─────────────────────────
+// Path & scope otomatis → aman dipakai di multi-repo GitHub Pages
+// Scope terbatas di folder repo ini saja (mis. /Komite-Keperawatan-RSU-SHND/)
+// sehingga tidak mengganggu dashboard lain di domain yang sama.
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    // Deteksi base path secara otomatis (e.g. /keperawatan/ atau /)
-    const swPath = new URL('sw.js', document.baseURI).pathname;
-    const scope  = new URL('./', document.baseURI).pathname;
-    navigator.serviceWorker.register(swPath, { scope })
-      .then(reg => {
-        console.log('[PWA] SW registered. Scope:', reg.scope);
-        // Paksa update SW baru langsung aktif tanpa harus tutup tab
-        reg.addEventListener('updatefound', () => {
-          const newWorker = reg.installing;
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              console.log('[PWA] Update tersedia, memuat ulang…');
-              window.location.reload();
-            }
-          });
-        });
-      })
-      .catch(err => console.warn('[PWA] SW registration failed:', err));
+  window.addEventListener('load', async () => {
+    try {
+      // Gunakan path RELATIF → scope otomatis sesuai subfolder repo
+      const reg = await navigator.serviceWorker.register('./sw.js');
+      console.log('[PWA] SW registered. Scope:', reg.scope);
+
+      // Hapus SW lama dari repo/app lain yang mungkin masih aktif
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for (const r of regs) {
+        if (r !== reg && !r.scope.includes(location.pathname.split('/')[1])) {
+          await r.unregister();
+          console.log('[PWA] Unregister SW lain:', r.scope);
+        }
+      }
+    } catch (err) {
+      console.warn('[PWA] SW registration failed:', err);
+    }
   });
 }
 </script>
