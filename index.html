@@ -1122,7 +1122,7 @@ async function submitForm() {
     if (fotoB64 && fotoMime && fotoName) {
       showToast('📤 Mengupload foto…');
       const compressed = await compressImage(fotoB64, fotoMime, 400, 0.7);
-      const upRes = await uploadFilePost('uploadFoto', compressed, fotoMime, fotoName);
+      const upRes = await uploadFilePost('uploadFoto', compressed, fotoMime, fotoName, nama, 'FOTO');
       fotoUrl = upRes.url;
     }
 
@@ -1364,7 +1364,7 @@ function previewFoto(e) {
   if (file.size > 5 * 1024 * 1024) { showToast('❌ Foto terlalu besar (maks 5MB)', true); return; }
 
   fotoMime = file.type;
-  fotoName = `foto_${Date.now()}_${file.name.replace(/\s/g,'_')}`;
+  fotoName = file.name;
 
   const reader = new FileReader();
   reader.onload = (ev) => {
