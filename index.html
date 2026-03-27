@@ -405,11 +405,10 @@ td.mono{font-family:var(--mono);font-size:10px;color:#5a7a95}
   </div>
   <div class="modal-body">
 
-    <!-- DRIVE WARNING BANNER -->
+    <!-- DRIVE WARNING BANNER — hanya muncul jika ada error upload -->
     <div id="driveWarnBanner" style="display:none;background:#fff7ed;border:1px solid #fdba74;border-radius:9px;padding:10px 14px;margin-bottom:14px;font-size:11px;color:#92400e;line-height:1.5">
-      ⚠️ <strong>Upload dokumen ke Google Drive sedang bermasalah</strong> (Akses ditolak: DriveApp).<br>
-      Data perawat <em>tetap bisa disimpan</em>, namun file dokumen tidak akan terupload.<br>
-      <strong>Solusi:</strong> Admin perlu membuka Google Apps Script → <em>Deploy → Manage deployments → Authorize</em> untuk memperbarui izin.
+      ⚠️ <strong>Upload dokumen ke Google Drive gagal.</strong><br>
+      Data perawat tetap tersimpan, namun file dokumen tidak terupload. Hubungi admin.
     </div>
 
     <!-- FOTO -->
@@ -1040,27 +1039,14 @@ function goPage(p) {
 //  MODAL: TAMBAH
 // ═══════════════════════════════════════════════════════════
 // ── Cek akses DriveApp, tampilkan banner jika bermasalah ────
-let driveAccessOk = null; // null=belum dicek, true=ok, false=gagal
-
-async function checkDriveAccess() {
-  const banner = document.getElementById('driveWarnBanner');
-  if (driveAccessOk === true) { banner.style.display = 'none'; return; }
-  if (driveAccessOk === false) { banner.style.display = ''; return; }
-  try {
-    const res = await callAPI({ action: 'checkDrive' });
-    driveAccessOk = res.success !== false && !res.error;
-  } catch(e) {
-    driveAccessOk = false;
-  }
-  banner.style.display = driveAccessOk ? 'none' : '';
-}
+let driveAccessOk = null;
 
 function openAdd() {
   resetForm();
   document.getElementById('formTitle').textContent = '＋ Tambah Perawat';
   document.getElementById('fMode').value = 'add';
   document.getElementById('formSubmitBtn').textContent = '💾 Simpan';
-  checkDriveAccess();
+  document.getElementById('driveWarnBanner').style.display = 'none';
   openModal('modalForm');
 }
 
@@ -1075,7 +1061,7 @@ function openEdit(rowIndex) {
   document.getElementById('fMode').value = 'edit';
   document.getElementById('fRowIndex').value = r.rowIndex;
   document.getElementById('formSubmitBtn').textContent = '💾 Update';
-  checkDriveAccess();
+  document.getElementById('driveWarnBanner').style.display = 'none';
 
   document.getElementById('fNama').value     = r.nama || '';
   document.getElementById('fUnit2').value    = r.unit || '';
