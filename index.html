@@ -599,6 +599,54 @@ td.mono{font-family:var(--mono);font-size:10px;color:#5a7a95}
 
 <div id="toast"></div>
 
+<!-- ═══ MODAL: DOCUMENT VIEWER FULLSCREEN ════════════════ -->
+<div id="modalDocViewer" style="
+  display:none;position:fixed;inset:0;z-index:1000;
+  background:#1a2e45;flex-direction:column;
+">
+  <div style="
+    display:flex;align-items:center;justify-content:space-between;
+    padding:10px 14px;background:#1a2e45;border-bottom:1px solid #2e4a6a;
+    flex-shrink:0;gap:10px;
+  ">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0">
+      <div id="docViewerLabel" style="font-size:13px;font-weight:800;color:#fff;white-space:nowrap"></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-shrink:0">
+      <a id="docViewerExtLink" href="#" target="_blank"
+        style="display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:8px;
+        background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);
+        color:#fff;font-size:11px;font-weight:700;text-decoration:none">
+        🔗 Buka di Browser
+      </a>
+      <button onclick="closeDocViewer()" style="
+        background:rgba(225,29,72,0.8);border:none;color:#fff;
+        padding:7px 13px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;
+      ">✕ Tutup</button>
+    </div>
+  </div>
+
+  <!-- Loading state -->
+  <div id="docViewerLoading" style="
+    flex:1;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:14px;color:#7a9bb5;
+  ">
+    <div style="width:40px;height:40px;border-radius:50%;border:3px solid #2e4a6a;
+      border-top-color:#60a5fa;animation:spin .7s linear infinite"></div>
+    <div style="font-size:13px;font-weight:600">Memuat dokumen…</div>
+    <div style="font-size:11px;color:#5a7a95;text-align:center;max-width:280px">
+      Jika tidak muncul, klik "Buka di Browser" di atas
+    </div>
+  </div>
+
+  <!-- iframe dokumen -->
+  <iframe id="docViewerFrame"
+    style="flex:1;width:100%;border:none;display:none;background:#fff"
+    allowfullscreen
+    sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-top-navigation">
+  </iframe>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════════════════
 //  CONFIG
@@ -1749,30 +1797,65 @@ function avatarHtml(foto, size='36px') {
   return `<div style="width:${size};height:${size};border-radius:50%;background:var(--surface2);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:calc(${size} / 2.2)">👤</div>`;
 }
 // ═══════════════════════════════════════════════════════════
-//  OPEN DOC — mobile-safe (PWA standalone & browser)
+//  OPEN DOC — fullscreen modal viewer (mobile-safe PWA)
 // ═══════════════════════════════════════════════════════════
 function openDoc(url, label) {
   if (!url) { showToast('⚠️ URL dokumen tidak tersedia', true); return; }
 
-  // Konversi lh3.googleusercontent.com/d/ID → drive preview agar bisa dibuka
-  let finalUrl = url;
+  // Konversi berbagai format URL Drive ke format preview yang bisa di-iframe
+  let embedUrl = url;
+  let viewUrl  = url;
+
+  // lh3.googleusercontent.com/d/FILE_ID → Google Drive
   const lh3 = url.match(/lh3\.googleusercontent\.com\/d\/([a-zA-Z0-9_-]+)/);
   if (lh3) {
-    finalUrl = 'https://drive.google.com/file/d/' + lh3[1] + '/view';
+    embedUrl = 'https://drive.google.com/file/d/' + lh3[1] + '/preview';
+    viewUrl  = 'https://drive.google.com/file/d/' + lh3[1] + '/view';
   }
-  // Pastikan drive URL pakai /view
+
+  // drive.google.com/file/d/FILE_ID/...
   const driveFile = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([a-zA-Z0-9_-]+)/);
   if (driveFile) {
-    finalUrl = 'https://drive.google.com/file/d/' + driveFile[1] + '/view';
+    embedUrl = 'https://drive.google.com/file/d/' + driveFile[1] + '/preview';
+    viewUrl  = 'https://drive.google.com/file/d/' + driveFile[1] + '/view';
   }
 
-  // Coba window.open (browser biasa)
-  const w = window.open(finalUrl, '_blank');
+  // Tampilkan modal viewer
+  const modal   = document.getElementById('modalDocViewer');
+  const frame   = document.getElementById('docViewerFrame');
+  const loading = document.getElementById('docViewerLoading');
+  const lbl     = document.getElementById('docViewerLabel');
+  const extLink = document.getElementById('docViewerExtLink');
 
-  // Fallback jika diblokir popup (PWA standalone mode di HP)
-  if (!w || w.closed || typeof w.closed === 'undefined') {
-    window.location.href = finalUrl;
-  }
+  lbl.textContent     = '📎 ' + label;
+  extLink.href        = viewUrl;
+  frame.style.display = 'none';
+  loading.style.display = 'flex';
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+
+  // Load iframe
+  frame.onload = () => {
+    loading.style.display = 'none';
+    frame.style.display   = 'block';
+  };
+  frame.onerror = () => {
+    loading.innerHTML = `
+      <div style="font-size:36px">⚠️</div>
+      <div style="font-size:13px;color:#fb7185;font-weight:700">Gagal memuat dokumen</div>
+      <div style="font-size:11px;color:#5a7a95;text-align:center;max-width:280px">
+        Silakan klik tombol "Buka di Browser" di atas untuk melihat dokumen
+      </div>`;
+  };
+  frame.src = embedUrl;
+}
+
+function closeDocViewer() {
+  const modal = document.getElementById('modalDocViewer');
+  const frame = document.getElementById('docViewerFrame');
+  modal.style.display = 'none';
+  frame.src = '';
+  document.body.style.overflow = '';
 }
 
 let toastT;
