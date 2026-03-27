@@ -203,7 +203,7 @@ td.mono{font-family:var(--mono);font-size:10px;color:#5a7a95}
 .doc-status.existing{color:var(--blue-l)}
 /* ── VIEW DOC BUTTONS ── */
 .doc-view-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-.doc-view-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:9px;font-size:11px;font-weight:700;text-decoration:none;transition:all .2s;border:1px solid}
+.doc-view-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:9px;font-size:11px;font-weight:700;text-decoration:none;transition:all .2s;border:1px solid;cursor:pointer;font-family:var(--font);background:none}
 .doc-view-btn:hover{transform:translateY(-1px)}
 .doc-str{background:rgba(37,99,235,.12);border-color:rgba(79,134,255,.3);color:#93c5fd}
 .doc-str:hover{background:rgba(37,99,235,.22)}
@@ -1251,13 +1251,13 @@ function openDetail(rowIndex) {
       <div class="section-label" style="margin-bottom:10px">📎 Dokumen</div>
       <div class="doc-view-row">
         ${r.strDoc
-          ? `<a href="${r.strDoc}" target="_blank" class="doc-view-btn doc-str">📄 Lihat STR</a>`
+          ? `<button onclick="openDoc('${r.strDoc.replace(/'/g,"\\'")}','STR')" class="doc-view-btn doc-str">📄 Lihat STR</button>`
           : `<span class="doc-view-btn doc-none">📄 STR belum ada</span>`}
         ${r.sipDoc
-          ? `<a href="${r.sipDoc}" target="_blank" class="doc-view-btn doc-sip">📋 Lihat SIP</a>`
+          ? `<button onclick="openDoc('${r.sipDoc.replace(/'/g,"\\'")}','SIP')" class="doc-view-btn doc-sip">📋 Lihat SIP</button>`
           : `<span class="doc-view-btn doc-none">📋 SIP belum ada</span>`}
         ${r.rkkDoc
-          ? `<a href="${r.rkkDoc}" target="_blank" class="doc-view-btn doc-rkk">🏆 Lihat RKK</a>`
+          ? `<button onclick="openDoc('${r.rkkDoc.replace(/'/g,"\\'")}','RKK')" class="doc-view-btn doc-rkk">🏆 Lihat RKK</button>`
           : `<span class="doc-view-btn doc-none">🏆 RKK belum ada</span>`}
       </div>
     </div>
@@ -1748,6 +1748,33 @@ function avatarHtml(foto, size='36px') {
   }
   return `<div style="width:${size};height:${size};border-radius:50%;background:var(--surface2);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:calc(${size} / 2.2)">👤</div>`;
 }
+// ═══════════════════════════════════════════════════════════
+//  OPEN DOC — mobile-safe (PWA standalone & browser)
+// ═══════════════════════════════════════════════════════════
+function openDoc(url, label) {
+  if (!url) { showToast('⚠️ URL dokumen tidak tersedia', true); return; }
+
+  // Konversi lh3.googleusercontent.com/d/ID → drive preview agar bisa dibuka
+  let finalUrl = url;
+  const lh3 = url.match(/lh3\.googleusercontent\.com\/d\/([a-zA-Z0-9_-]+)/);
+  if (lh3) {
+    finalUrl = 'https://drive.google.com/file/d/' + lh3[1] + '/view';
+  }
+  // Pastikan drive URL pakai /view
+  const driveFile = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([a-zA-Z0-9_-]+)/);
+  if (driveFile) {
+    finalUrl = 'https://drive.google.com/file/d/' + driveFile[1] + '/view';
+  }
+
+  // Coba window.open (browser biasa)
+  const w = window.open(finalUrl, '_blank');
+
+  // Fallback jika diblokir popup (PWA standalone mode di HP)
+  if (!w || w.closed || typeof w.closed === 'undefined') {
+    window.location.href = finalUrl;
+  }
+}
+
 let toastT;
 function showToast(msg, err=false) {
   const t = document.getElementById('toast');
