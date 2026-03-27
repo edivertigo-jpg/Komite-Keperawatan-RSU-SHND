@@ -405,6 +405,13 @@ td.mono{font-family:var(--mono);font-size:10px;color:#5a7a95}
   </div>
   <div class="modal-body">
 
+    <!-- DRIVE WARNING BANNER -->
+    <div id="driveWarnBanner" style="display:none;background:#fff7ed;border:1px solid #fdba74;border-radius:9px;padding:10px 14px;margin-bottom:14px;font-size:11px;color:#92400e;line-height:1.5">
+      ⚠️ <strong>Upload dokumen ke Google Drive sedang bermasalah</strong> (Akses ditolak: DriveApp).<br>
+      Data perawat <em>tetap bisa disimpan</em>, namun file dokumen tidak akan terupload.<br>
+      <strong>Solusi:</strong> Admin perlu membuka Google Apps Script → <em>Deploy → Manage deployments → Authorize</em> untuk memperbarui izin.
+    </div>
+
     <!-- FOTO -->
     <div class="section-label">Foto Profil</div>
     <div class="foto-upload-area" id="fotoArea" onclick="triggerFoto()">
@@ -651,7 +658,7 @@ td.mono{font-family:var(--mono);font-size:10px;color:#5a7a95}
 // ═══════════════════════════════════════════════════════════
 //  CONFIG
 // ═══════════════════════════════════════════════════════════
-const API = 'https://script.google.com/macros/s/AKfycbzgbnnTNmd84lhgYLzyAYeefmQgnQOOcUtNAWFEH7ni5zzpIcqMDneVfpjgFissXqBb/exec';
+const API = 'https://script.google.com/macros/s/AKfycbxqULQP7DACJJfr_SJc3SP337pxB7qjj-pVBSjaYgGZ4S3QzxVhx7mWq6hQpX1A4YjM/exec';
 const PAGE_SIZE = 20;
 
 let allData   = [];
@@ -1032,11 +1039,28 @@ function goPage(p) {
 // ═══════════════════════════════════════════════════════════
 //  MODAL: TAMBAH
 // ═══════════════════════════════════════════════════════════
+// ── Cek akses DriveApp, tampilkan banner jika bermasalah ────
+let driveAccessOk = null; // null=belum dicek, true=ok, false=gagal
+
+async function checkDriveAccess() {
+  const banner = document.getElementById('driveWarnBanner');
+  if (driveAccessOk === true) { banner.style.display = 'none'; return; }
+  if (driveAccessOk === false) { banner.style.display = ''; return; }
+  try {
+    const res = await callAPI({ action: 'checkDrive' });
+    driveAccessOk = res.success !== false && !res.error;
+  } catch(e) {
+    driveAccessOk = false;
+  }
+  banner.style.display = driveAccessOk ? 'none' : '';
+}
+
 function openAdd() {
   resetForm();
   document.getElementById('formTitle').textContent = '＋ Tambah Perawat';
   document.getElementById('fMode').value = 'add';
   document.getElementById('formSubmitBtn').textContent = '💾 Simpan';
+  checkDriveAccess();
   openModal('modalForm');
 }
 
@@ -1051,6 +1075,7 @@ function openEdit(rowIndex) {
   document.getElementById('fMode').value = 'edit';
   document.getElementById('fRowIndex').value = r.rowIndex;
   document.getElementById('formSubmitBtn').textContent = '💾 Update';
+  checkDriveAccess();
 
   document.getElementById('fNama').value     = r.nama || '';
   document.getElementById('fUnit2').value    = r.unit || '';
@@ -1117,13 +1142,20 @@ async function submitForm() {
   btn.textContent = '⏳ Menyimpan…';
 
   try {
+    const driveWarnings = [];
+
     // 1. Upload Foto
     let fotoUrl = document.getElementById('fFoto').value || '';
     if (fotoB64 && fotoMime && fotoName) {
       showToast('📤 Mengupload foto…');
-      const compressed = await compressImage(fotoB64, fotoMime, 400, 0.7);
-      const upRes = await uploadFilePost('uploadFoto', compressed, fotoMime, fotoName);
-      fotoUrl = upRes.url;
+      try {
+        const compressed = await compressImage(fotoB64, fotoMime, 400, 0.7);
+        const upRes = await uploadFilePost('uploadFoto', compressed, fotoMime, fotoName);
+        fotoUrl = upRes.url;
+      } catch(uploadErr) {
+        driveWarnings.push('Foto');
+        console.warn('Upload foto gagal (DriveApp):', uploadErr.message);
+      }
     }
 
     // 2. Upload dokumen STR/SIP/RKK jika ada file baru
@@ -1133,18 +1165,42 @@ async function submitForm() {
 
     if (docFiles.STR) {
       showToast('📤 Mengupload dokumen STR…');
-      const r = await uploadFilePost('uploadSTR', docFiles.STR.b64, docFiles.STR.mime, docFiles.STR.name, nama, 'STR');
-      strDocUrl = r.url;
+      try {
+        const r = await uploadFilePost('uploadSTR', docFiles.STR.b64, docFiles.STR.mime, docFiles.STR.name, nama, 'STR');
+        strDocUrl = r.url;
+      } catch(uploadErr) {
+        driveWarnings.push('STR');
+        console.warn('Upload STR gagal (DriveApp):', uploadErr.message);
+      }
     }
     if (docFiles.SIP) {
       showToast('📤 Mengupload dokumen SIP…');
-      const r = await uploadFilePost('uploadSIP', docFiles.SIP.b64, docFiles.SIP.mime, docFiles.SIP.name, nama, 'SIP');
-      sipDocUrl = r.url;
+      try {
+        const r = await uploadFilePost('uploadSIP', docFiles.SIP.b64, docFiles.SIP.mime, docFiles.SIP.name, nama, 'SIP');
+        sipDocUrl = r.url;
+      } catch(uploadErr) {
+        driveWarnings.push('SIP');
+        console.warn('Upload SIP gagal (DriveApp):', uploadErr.message);
+      }
     }
     if (docFiles.RKK) {
       showToast('📤 Mengupload dokumen RKK…');
-      const r = await uploadFilePost('uploadRKK', docFiles.RKK.b64, docFiles.RKK.mime, docFiles.RKK.name, nama, 'RKK');
-      rkkDocUrl = r.url;
+      try {
+        const r = await uploadFilePost('uploadRKK', docFiles.RKK.b64, docFiles.RKK.mime, docFiles.RKK.name, nama, 'RKK');
+        rkkDocUrl = r.url;
+      } catch(uploadErr) {
+        driveWarnings.push('RKK');
+        console.warn('Upload RKK gagal (DriveApp):', uploadErr.message);
+      }
+    }
+
+    // Peringatkan user jika ada file yang gagal diupload ke Drive
+    if (driveWarnings.length > 0) {
+      driveAccessOk = false;
+      showToast(`⚠️ Dokumen (${driveWarnings.join(', ')}) gagal diupload ke Drive — data tetap disimpan. Hubungi admin untuk re-authorize Google Apps Script.`, true);
+      await new Promise(r => setTimeout(r, 3000)); // beri waktu baca toast
+    } else if (docFiles.STR || docFiles.SIP || docFiles.RKK || (fotoB64 && fotoMime)) {
+      driveAccessOk = true; // upload berhasil, Drive ok
     }
 
     const mode = document.getElementById('fMode').value;
@@ -1866,7 +1922,8 @@ function showToast(msg, err=false) {
   t.style.color = err ? 'var(--rose-l)' : 'var(--teal-l)';
   t.classList.add('on');
   clearTimeout(toastT);
-  toastT = setTimeout(() => t.classList.remove('on'), 3400);
+  // Error messages stay longer (7s), info messages 3.4s
+  toastT = setTimeout(() => t.classList.remove('on'), err ? 7000 : 3400);
 }
 
 function setDyn(html) { document.getElementById('dynArea').innerHTML = html; }
