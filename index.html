@@ -405,12 +405,6 @@ td.mono{font-family:var(--mono);font-size:10px;color:#5a7a95}
   </div>
   <div class="modal-body">
 
-    <!-- DRIVE WARNING BANNER — hanya muncul jika ada error upload -->
-    <div id="driveWarnBanner" style="display:none;background:#fff7ed;border:1px solid #fdba74;border-radius:9px;padding:10px 14px;margin-bottom:14px;font-size:11px;color:#92400e;line-height:1.5">
-      ⚠️ <strong>Upload dokumen ke Google Drive gagal.</strong><br>
-      Data perawat tetap tersimpan, namun file dokumen tidak terupload. Hubungi admin.
-    </div>
-
     <!-- FOTO -->
     <div class="section-label">Foto Profil</div>
     <div class="foto-upload-area" id="fotoArea" onclick="triggerFoto()">
@@ -1046,7 +1040,6 @@ function openAdd() {
   document.getElementById('formTitle').textContent = '＋ Tambah Perawat';
   document.getElementById('fMode').value = 'add';
   document.getElementById('formSubmitBtn').textContent = '💾 Simpan';
-  document.getElementById('driveWarnBanner').style.display = 'none';
   openModal('modalForm');
 }
 
@@ -1061,7 +1054,6 @@ function openEdit(rowIndex) {
   document.getElementById('fMode').value = 'edit';
   document.getElementById('fRowIndex').value = r.rowIndex;
   document.getElementById('formSubmitBtn').textContent = '💾 Update';
-  document.getElementById('driveWarnBanner').style.display = 'none';
 
   document.getElementById('fNama').value     = r.nama || '';
   document.getElementById('fUnit2').value    = r.unit || '';
@@ -1183,7 +1175,7 @@ async function submitForm() {
     // Peringatkan user jika ada file yang gagal diupload ke Drive
     if (driveWarnings.length > 0) {
       driveAccessOk = false;
-      showToast(`⚠️ Dokumen (${driveWarnings.join(', ')}) gagal diupload ke Drive — data tetap disimpan. Hubungi admin untuk re-authorize Google Apps Script.`, true);
+      showToast(`⚠️ Dokumen (${driveWarnings.join(', ')}) gagal diupload ke Drive — data tetap disimpan.`, true);
       await new Promise(r => setTimeout(r, 3000)); // beri waktu baca toast
     } else if (docFiles.STR || docFiles.SIP || docFiles.RKK || (fotoB64 && fotoMime)) {
       driveAccessOk = true; // upload berhasil, Drive ok
