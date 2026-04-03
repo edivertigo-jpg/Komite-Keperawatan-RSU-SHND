@@ -1355,7 +1355,9 @@ function previewFoto(e) {
   if (file.size > 5 * 1024 * 1024) { showToast('❌ Foto terlalu besar (maks 5MB)', true); return; }
 
   fotoMime = file.type;
-  fotoName = `foto_${Date.now()}_${file.name.replace(/\s/g,'_')}`;
+  // Nama sementara — Apps Script akan rename pakai nama perawat saat upload
+  const ext = file.name.split('.').pop() || 'jpg';
+  fotoName  = 'foto_upload.' + ext;
 
   const reader = new FileReader();
   reader.onload = (ev) => {
