@@ -599,59 +599,50 @@ td.mono{font-family:var(--mono);font-size:10px;color:#5a7a95}
 
 <div id="toast"></div>
 
-<!-- ═══ MODAL: DOCUMENT VIEWER FULLSCREEN ════════════════ -->
-<div id="modalDocViewer" style="
-  display:none;position:fixed;inset:0;z-index:1000;
-  background:#1a2e45;flex-direction:column;
-">
-  <div style="
-    display:flex;align-items:center;justify-content:space-between;
-    padding:10px 14px;background:#1a2e45;border-bottom:1px solid #2e4a6a;
-    flex-shrink:0;gap:10px;
-  ">
-    <div style="display:flex;align-items:center;gap:10px;min-width:0">
-      <div id="docViewerLabel" style="font-size:13px;font-weight:800;color:#fff;white-space:nowrap"></div>
-    </div>
-    <div style="display:flex;gap:8px;flex-shrink:0">
-      <a id="docViewerExtLink" href="#" target="_blank"
-        style="display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:8px;
-        background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);
-        color:#fff;font-size:11px;font-weight:700;text-decoration:none">
-        🔗 Buka di Browser
-      </a>
-      <button onclick="closeDocViewer()" style="
-        background:rgba(225,29,72,0.8);border:none;color:#fff;
-        padding:7px 13px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;
-      ">✕ Tutup</button>
+<!-- ═══ MODAL: DOCUMENT VIEWER FULLSCREEN + ZOOM ═════════ -->
+<div id="modalDocViewer" style="display:none;position:fixed;inset:0;z-index:1000;background:#1a2e45;flex-direction:column;">
+
+  <!-- Header -->
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#1a2e45;border-bottom:1px solid #2e4a6a;flex-shrink:0;gap:8px;">
+    <div id="docViewerLabel" style="font-size:13px;font-weight:800;color:#fff;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis"></div>
+    <div style="display:flex;gap:6px;flex-shrink:0;align-items:center">
+      <!-- Zoom controls -->
+      <button onclick="docZoom(-0.25)" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#fff;width:34px;height:34px;border-radius:8px;font-size:18px;font-weight:700;cursor:pointer;line-height:1">−</button>
+      <span id="docZoomLabel" style="color:#fff;font-size:11px;font-weight:700;min-width:36px;text-align:center">100%</span>
+      <button onclick="docZoom(0.25)" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#fff;width:34px;height:34px;border-radius:8px;font-size:18px;font-weight:700;cursor:pointer;line-height:1">+</button>
+      <button onclick="docZoomReset()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:0 10px;height:34px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer">Reset</button>
+      <!-- Buka di browser -->
+      <a id="docViewerExtLink" href="#" target="_blank" style="display:inline-flex;align-items:center;gap:4px;padding:0 10px;height:34px;border-radius:8px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:11px;font-weight:700;text-decoration:none;white-space:nowrap">🔗 Browser</a>
+      <!-- Tutup -->
+      <button onclick="closeDocViewer()" style="background:rgba(225,29,72,0.8);border:none;color:#fff;padding:0 12px;height:34px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">✕</button>
     </div>
   </div>
 
-  <!-- Loading state -->
-  <div id="docViewerLoading" style="
-    flex:1;display:flex;flex-direction:column;align-items:center;
-    justify-content:center;gap:14px;color:#7a9bb5;
-  ">
-    <div style="width:40px;height:40px;border-radius:50%;border:3px solid #2e4a6a;
-      border-top-color:#60a5fa;animation:spin .7s linear infinite"></div>
+  <!-- Loading -->
+  <div id="docViewerLoading" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#7a9bb5;">
+    <div style="width:40px;height:40px;border-radius:50%;border:3px solid #2e4a6a;border-top-color:#60a5fa;animation:spin .7s linear infinite"></div>
     <div style="font-size:13px;font-weight:600">Memuat dokumen…</div>
-    <div style="font-size:11px;color:#5a7a95;text-align:center;max-width:280px">
-      Jika tidak muncul, klik "Buka di Browser" di atas
+    <div style="font-size:11px;color:#5a7a95;text-align:center;max-width:280px">Jika tidak muncul, klik "🔗 Browser" di atas</div>
+  </div>
+
+  <!-- Scrollable zoom container -->
+  <div id="docViewerScroll" style="flex:1;overflow:auto;display:none;background:#525659;-webkit-overflow-scrolling:touch;">
+    <div id="docViewerInner" style="transform-origin:top left;transition:transform 0.15s;width:100%;height:100%;">
+      <iframe id="docViewerFrame"
+        style="width:100%;height:100%;min-height:calc(100vh - 60px);border:none;background:#fff;display:block;"
+        allowfullscreen
+        sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-top-navigation">
+      </iframe>
     </div>
   </div>
 
-  <!-- iframe dokumen -->
-  <iframe id="docViewerFrame"
-    style="flex:1;width:100%;border:none;display:none;background:#fff"
-    allowfullscreen
-    sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-top-navigation">
-  </iframe>
 </div>
 
 <script>
 // ═══════════════════════════════════════════════════════════
 //  CONFIG
 // ═══════════════════════════════════════════════════════════
-const API = 'https://script.google.com/macros/s/AKfycbwl7-OkLvtdJLtbYoDE2ytnTi_v9cLgzo-ZH-u02SxoV_f_uiiqgNsao9LFPQn8mTg4/exec';
+const API = 'https://script.google.com/macros/s/AKfycbzLKKzZjD2UsrSnK35LhB_NWu7MUPpEG4DhNrFqZFf4x5IMMcTTbBu1RNkEZ7Nwu5id/exec';
 const PAGE_SIZE = 20;
 
 let allData   = [];
@@ -1122,7 +1113,7 @@ async function submitForm() {
     if (fotoB64 && fotoMime && fotoName) {
       showToast('📤 Mengupload foto…');
       const compressed = await compressImage(fotoB64, fotoMime, 400, 0.7);
-      const upRes = await uploadFilePost('uploadFoto', compressed, fotoMime, fotoName, nama, 'FOTO');
+      const upRes = await uploadFilePost('uploadFoto', compressed, fotoMime, fotoName);
       fotoUrl = upRes.url;
     }
 
@@ -1364,7 +1355,7 @@ function previewFoto(e) {
   if (file.size > 5 * 1024 * 1024) { showToast('❌ Foto terlalu besar (maks 5MB)', true); return; }
 
   fotoMime = file.type;
-  fotoName = file.name;
+  fotoName = `foto_${Date.now()}_${file.name.replace(/\s/g,'_')}`;
 
   const reader = new FileReader();
   reader.onload = (ev) => {
@@ -1797,65 +1788,130 @@ function avatarHtml(foto, size='36px') {
   return `<div style="width:${size};height:${size};border-radius:50%;background:var(--surface2);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:calc(${size} / 2.2)">👤</div>`;
 }
 // ═══════════════════════════════════════════════════════════
-//  OPEN DOC — fullscreen modal viewer (mobile-safe PWA)
+//  OPEN DOC — fullscreen viewer + zoom (mobile-safe PWA)
 // ═══════════════════════════════════════════════════════════
+let docCurrentZoom = 1;
+
 function openDoc(url, label) {
   if (!url) { showToast('⚠️ URL dokumen tidak tersedia', true); return; }
 
-  // Konversi berbagai format URL Drive ke format preview yang bisa di-iframe
   let embedUrl = url;
   let viewUrl  = url;
 
-  // lh3.googleusercontent.com/d/FILE_ID → Google Drive
   const lh3 = url.match(/lh3\.googleusercontent\.com\/d\/([a-zA-Z0-9_-]+)/);
   if (lh3) {
     embedUrl = 'https://drive.google.com/file/d/' + lh3[1] + '/preview';
     viewUrl  = 'https://drive.google.com/file/d/' + lh3[1] + '/view';
   }
-
-  // drive.google.com/file/d/FILE_ID/...
   const driveFile = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([a-zA-Z0-9_-]+)/);
   if (driveFile) {
     embedUrl = 'https://drive.google.com/file/d/' + driveFile[1] + '/preview';
     viewUrl  = 'https://drive.google.com/file/d/' + driveFile[1] + '/view';
   }
 
-  // Tampilkan modal viewer
   const modal   = document.getElementById('modalDocViewer');
   const frame   = document.getElementById('docViewerFrame');
+  const scroll  = document.getElementById('docViewerScroll');
+  const inner   = document.getElementById('docViewerInner');
   const loading = document.getElementById('docViewerLoading');
   const lbl     = document.getElementById('docViewerLabel');
   const extLink = document.getElementById('docViewerExtLink');
 
-  lbl.textContent     = '📎 ' + label;
-  extLink.href        = viewUrl;
-  frame.style.display = 'none';
+  lbl.textContent       = '📎 ' + label;
+  extLink.href          = viewUrl;
+  scroll.style.display  = 'none';
   loading.style.display = 'flex';
-  modal.style.display = 'flex';
+  modal.style.display   = 'flex';
   document.body.style.overflow = 'hidden';
 
-  // Load iframe
+  // Reset zoom
+  docCurrentZoom = 1;
+  inner.style.transform = 'scale(1)';
+  inner.style.width  = '100%';
+  inner.style.height = '100%';
+  document.getElementById('docZoomLabel').textContent = '100%';
+
   frame.onload = () => {
     loading.style.display = 'none';
-    frame.style.display   = 'block';
+    scroll.style.display  = 'block';
   };
   frame.onerror = () => {
     loading.innerHTML = `
       <div style="font-size:36px">⚠️</div>
       <div style="font-size:13px;color:#fb7185;font-weight:700">Gagal memuat dokumen</div>
       <div style="font-size:11px;color:#5a7a95;text-align:center;max-width:280px">
-        Silakan klik tombol "Buka di Browser" di atas untuk melihat dokumen
-      </div>`;
+        Klik tombol "🔗 Browser" di atas untuk membuka dokumen</div>`;
   };
   frame.src = embedUrl;
+
+  // Pinch-to-zoom support
+  initPinchZoom(scroll);
+}
+
+function docZoom(delta) {
+  docCurrentZoom = Math.min(4, Math.max(0.5, docCurrentZoom + delta));
+  applyDocZoom();
+}
+
+function docZoomReset() {
+  docCurrentZoom = 1;
+  applyDocZoom();
+}
+
+function applyDocZoom() {
+  const inner  = document.getElementById('docViewerInner');
+  const scroll = document.getElementById('docViewerScroll');
+  const pct    = Math.round(docCurrentZoom * 100);
+  document.getElementById('docZoomLabel').textContent = pct + '%';
+
+  if (docCurrentZoom === 1) {
+    inner.style.transform = 'scale(1)';
+    inner.style.width  = '100%';
+    inner.style.height = '100%';
+  } else {
+    // Scale dari top-left, buat inner lebih besar agar scrollable
+    const w = Math.round(docCurrentZoom * 100) + '%';
+    inner.style.width     = w;
+    inner.style.height    = Math.round(docCurrentZoom * (scroll.clientHeight || window.innerHeight)) + 'px';
+    inner.style.transform = 'scale(' + docCurrentZoom + ')';
+    inner.style.transformOrigin = 'top left';
+  }
+}
+
+// Pinch-to-zoom gesture
+function initPinchZoom(el) {
+  let startDist = 0;
+  let startZoom = 1;
+  el.addEventListener('touchstart', function(e) {
+    if (e.touches.length === 2) {
+      startDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      startZoom = docCurrentZoom;
+    }
+  }, { passive: true });
+  el.addEventListener('touchmove', function(e) {
+    if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      docCurrentZoom = Math.min(4, Math.max(0.5, startZoom * (dist / startDist)));
+      applyDocZoom();
+    }
+  }, { passive: true });
 }
 
 function closeDocViewer() {
   const modal = document.getElementById('modalDocViewer');
   const frame = document.getElementById('docViewerFrame');
-  modal.style.display = 'none';
+  const scroll = document.getElementById('docViewerScroll');
+  modal.style.display  = 'none';
+  scroll.style.display = 'none';
   frame.src = '';
   document.body.style.overflow = '';
+  docCurrentZoom = 1;
 }
 
 let toastT;
