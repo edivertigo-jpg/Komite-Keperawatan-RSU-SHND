@@ -625,11 +625,11 @@ td.mono{font-family:var(--mono);font-size:10px;color:#5a7a95}
     <div style="font-size:11px;color:#5a7a95;text-align:center;max-width:280px">Jika tidak muncul, klik "🔗 Browser" di atas</div>
   </div>
 
-  <!-- Scrollable zoom container -->
-  <div id="docViewerScroll" style="flex:1;overflow:auto;display:none;background:#525659;-webkit-overflow-scrolling:touch;">
-    <div id="docViewerInner" style="transform-origin:top left;transition:transform 0.15s;width:100%;height:100%;">
+  <!-- Pan + Zoom container -->
+  <div id="docViewerScroll" style="flex:1;overflow:hidden;display:none;background:#525659;position:relative;cursor:grab;touch-action:none;">
+    <div id="docViewerInner" style="position:absolute;top:0;left:0;width:100%;height:100%;transform-origin:0 0;">
       <iframe id="docViewerFrame"
-        style="width:100%;height:100%;min-height:calc(100vh - 60px);border:none;background:#fff;display:block;"
+        style="width:100%;height:100%;border:none;background:#fff;display:block;pointer-events:none;"
         allowfullscreen
         sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-top-navigation">
       </iframe>
@@ -1788,9 +1788,11 @@ function avatarHtml(foto, size='36px') {
   return `<div style="width:${size};height:${size};border-radius:50%;background:var(--surface2);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:calc(${size} / 2.2)">👤</div>`;
 }
 // ═══════════════════════════════════════════════════════════
-//  OPEN DOC — fullscreen viewer + zoom (mobile-safe PWA)
+//  OPEN DOC — fullscreen viewer + free pan + pinch zoom
 // ═══════════════════════════════════════════════════════════
-let docCurrentZoom = 1;
+let docScale = 1;
+let docPanX  = 0;
+let docPanY  = 0;
 
 function openDoc(url, label) {
   if (!url) { showToast('⚠️ URL dokumen tidak tersedia', true); return; }
@@ -1812,7 +1814,6 @@ function openDoc(url, label) {
   const modal   = document.getElementById('modalDocViewer');
   const frame   = document.getElementById('docViewerFrame');
   const scroll  = document.getElementById('docViewerScroll');
-  const inner   = document.getElementById('docViewerInner');
   const loading = document.getElementById('docViewerLoading');
   const lbl     = document.getElementById('docViewerLabel');
   const extLink = document.getElementById('docViewerExtLink');
@@ -1824,94 +1825,156 @@ function openDoc(url, label) {
   modal.style.display   = 'flex';
   document.body.style.overflow = 'hidden';
 
-  // Reset zoom
-  docCurrentZoom = 1;
-  inner.style.transform = 'scale(1)';
-  inner.style.width  = '100%';
-  inner.style.height = '100%';
+  // Reset transform
+  docScale = 1; docPanX = 0; docPanY = 0;
+  applyDocTransform();
   document.getElementById('docZoomLabel').textContent = '100%';
 
   frame.onload = () => {
     loading.style.display = 'none';
     scroll.style.display  = 'block';
+    initDocPanZoom();
   };
   frame.onerror = () => {
     loading.innerHTML = `
       <div style="font-size:36px">⚠️</div>
       <div style="font-size:13px;color:#fb7185;font-weight:700">Gagal memuat dokumen</div>
       <div style="font-size:11px;color:#5a7a95;text-align:center;max-width:280px">
-        Klik tombol "🔗 Browser" di atas untuk membuka dokumen</div>`;
+        Klik "🔗 Browser" di atas untuk membuka dokumen</div>`;
   };
   frame.src = embedUrl;
+}
 
-  // Pinch-to-zoom support
-  initPinchZoom(scroll);
+function applyDocTransform(animate) {
+  const inner = document.getElementById('docViewerInner');
+  inner.style.transition = animate ? 'transform 0.15s' : 'none';
+  inner.style.transform  = 'translate(' + docPanX + 'px,' + docPanY + 'px) scale(' + docScale + ')';
+  document.getElementById('docZoomLabel').textContent = Math.round(docScale * 100) + '%';
 }
 
 function docZoom(delta) {
-  docCurrentZoom = Math.min(4, Math.max(0.5, docCurrentZoom + delta));
-  applyDocZoom();
+  const scroll = document.getElementById('docViewerScroll');
+  const cx = scroll.clientWidth  / 2;
+  const cy = scroll.clientHeight / 2;
+  const newScale = Math.min(5, Math.max(0.5, docScale + delta));
+  // Zoom ke tengah layar
+  docPanX = cx - (cx - docPanX) * (newScale / docScale);
+  docPanY = cy - (cy - docPanY) * (newScale / docScale);
+  docScale = newScale;
+  clampPan();
+  applyDocTransform(true);
 }
 
 function docZoomReset() {
-  docCurrentZoom = 1;
-  applyDocZoom();
+  docScale = 1; docPanX = 0; docPanY = 0;
+  applyDocTransform(true);
 }
 
-function applyDocZoom() {
-  const inner  = document.getElementById('docViewerInner');
+function clampPan() {
   const scroll = document.getElementById('docViewerScroll');
-  const pct    = Math.round(docCurrentZoom * 100);
-  document.getElementById('docZoomLabel').textContent = pct + '%';
-
-  if (docCurrentZoom === 1) {
-    inner.style.transform = 'scale(1)';
-    inner.style.width  = '100%';
-    inner.style.height = '100%';
-  } else {
-    // Scale dari top-left, buat inner lebih besar agar scrollable
-    const w = Math.round(docCurrentZoom * 100) + '%';
-    inner.style.width     = w;
-    inner.style.height    = Math.round(docCurrentZoom * (scroll.clientHeight || window.innerHeight)) + 'px';
-    inner.style.transform = 'scale(' + docCurrentZoom + ')';
-    inner.style.transformOrigin = 'top left';
-  }
+  const W = scroll.clientWidth;
+  const H = scroll.clientHeight;
+  const iW = W * docScale;
+  const iH = H * docScale;
+  const minX = docScale > 1 ? W - iW : 0;
+  const minY = docScale > 1 ? H - iH : 0;
+  docPanX = Math.min(0, Math.max(minX, docPanX));
+  docPanY = Math.min(0, Math.max(minY, docPanY));
 }
 
-// Pinch-to-zoom gesture
-function initPinchZoom(el) {
-  let startDist = 0;
-  let startZoom = 1;
-  el.addEventListener('touchstart', function(e) {
+// ── Free pan + pinch zoom ─────────────────────────────────────
+function initDocPanZoom() {
+  const el = document.getElementById('docViewerScroll');
+  // Remove old listeners by replacing element clone trick isn't needed — use flags
+  el._panInit = true;
+
+  // ── MOUSE drag ──
+  let isDragging = false, lastMX = 0, lastMY = 0;
+  el.onmousedown = e => {
+    isDragging = true; lastMX = e.clientX; lastMY = e.clientY;
+    el.style.cursor = 'grabbing'; e.preventDefault();
+  };
+  window.onmousemove = e => {
+    if (!isDragging) return;
+    docPanX += e.clientX - lastMX;
+    docPanY += e.clientY - lastMY;
+    lastMX = e.clientX; lastMY = e.clientY;
+    clampPan();
+    applyDocTransform();
+  };
+  window.onmouseup = () => {
+    isDragging = false;
+    el.style.cursor = 'grab';
+  };
+
+  // ── TOUCH: single finger pan, two finger pinch ──
+  let touches = {};
+  let lastPinchDist = 0;
+
+  el.ontouchstart = e => {
+    Array.from(e.changedTouches).forEach(t => { touches[t.identifier] = {x: t.clientX, y: t.clientY}; });
     if (e.touches.length === 2) {
-      startDist = Math.hypot(
+      lastPinchDist = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
       );
-      startZoom = docCurrentZoom;
     }
-  }, { passive: true });
-  el.addEventListener('touchmove', function(e) {
-    if (e.touches.length === 2) {
+    e.preventDefault();
+  };
+
+  el.ontouchmove = e => {
+    e.preventDefault();
+    if (e.touches.length === 1) {
+      // Single finger — pan
+      const t = e.touches[0];
+      const prev = touches[t.identifier];
+      if (prev) {
+        docPanX += t.clientX - prev.x;
+        docPanY += t.clientY - prev.y;
+        clampPan();
+        applyDocTransform();
+      }
+      touches[t.identifier] = {x: t.clientX, y: t.clientY};
+    } else if (e.touches.length === 2) {
+      // Two fingers — pinch zoom
       const dist = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
       );
-      docCurrentZoom = Math.min(4, Math.max(0.5, startZoom * (dist / startDist)));
-      applyDocZoom();
+      if (lastPinchDist > 0) {
+        const ratio    = dist / lastPinchDist;
+        const newScale = Math.min(5, Math.max(0.5, docScale * ratio));
+        // Zoom ke midpoint kedua jari
+        const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        docPanX = midX - (midX - docPanX) * (newScale / docScale);
+        docPanY = midY - (midY - docPanY) * (newScale / docScale);
+        docScale = newScale;
+        clampPan();
+        applyDocTransform();
+      }
+      lastPinchDist = dist;
+      Array.from(e.touches).forEach(t => { touches[t.identifier] = {x: t.clientX, y: t.clientY}; });
     }
-  }, { passive: true });
+  };
+
+  el.ontouchend = e => {
+    Array.from(e.changedTouches).forEach(t => { delete touches[t.identifier]; });
+    lastPinchDist = 0;
+  };
 }
 
 function closeDocViewer() {
-  const modal = document.getElementById('modalDocViewer');
-  const frame = document.getElementById('docViewerFrame');
+  const modal  = document.getElementById('modalDocViewer');
+  const frame  = document.getElementById('docViewerFrame');
   const scroll = document.getElementById('docViewerScroll');
   modal.style.display  = 'none';
   scroll.style.display = 'none';
   frame.src = '';
   document.body.style.overflow = '';
-  docCurrentZoom = 1;
+  docScale = 1; docPanX = 0; docPanY = 0;
+  window.onmousemove = null;
+  window.onmouseup   = null;
 }
 
 let toastT;
