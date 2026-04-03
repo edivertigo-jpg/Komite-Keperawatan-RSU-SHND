@@ -1113,7 +1113,7 @@ async function submitForm() {
     if (fotoB64 && fotoMime && fotoName) {
       showToast('📤 Mengupload foto…');
       const compressed = await compressImage(fotoB64, fotoMime, 400, 0.7);
-      const upRes = await uploadFilePost('uploadFoto', compressed, fotoMime, fotoName);
+      const upRes = await uploadFilePost('uploadFoto', compressed, fotoMime, fotoName, nama, 'foto');
       fotoUrl = upRes.url;
     }
 
