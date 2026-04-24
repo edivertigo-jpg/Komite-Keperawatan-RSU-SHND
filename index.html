@@ -320,7 +320,7 @@ td.mono{font-family:var(--mono);font-size:10px;color:#5a7a95}
   <input class="fi fi-s" id="fSearch" placeholder="🔍 Cari nama / NIP…" oninput="applyFilters()">
   <select class="fi" id="fUnit" onchange="applyFilters()"><option value="">Semua Unit</option></select>
   <select class="fi" id="fStatus" onchange="applyFilters()">
-    <option value="">Semua Status</option><option>Tetap</option><option>Kontrak</option>
+    <option value="">Semua Status</option><option>Tetap</option><option>Kontrak</option><option>Training</option>
   </select>
   <select class="fi" id="fCond" onchange="onCondChange();applyFilters()">
     <option value="">Semua Kondisi</option>
@@ -455,6 +455,7 @@ td.mono{font-family:var(--mono);font-size:10px;color:#5a7a95}
           <option value="">-- Pilih --</option>
           <option>Tetap</option>
           <option>Kontrak</option>
+          <option>Training</option>
         </select>
       </div>
       <div class="fg">
@@ -1490,93 +1491,47 @@ async function callAPI(params) {
 function exportExcel() {
   if (!filtered.length) { showToast('⚠️ Tidak ada data untuk diexport', true); return; }
 
-  const headers = ['No','Nama','Unit','NIP','Status',
-    'Tanggal Lahir','Tanggal Bergabung','Masa Kerja',
-    'Terbit STR','Berakhir STR','Terbit SIP','Berakhir SIP',
-    'Terbit RKK','Berakhir RKK','Keterangan'];
+  try {
+    const headers = ['No','Nama','Unit','NIP','Status',
+      'Tanggal Lahir','Tanggal Bergabung','Masa Kerja',
+      'Terbit STR','Berakhir STR','Terbit SIP','Berakhir SIP',
+      'Terbit RKK','Berakhir RKK','Keterangan'];
 
-  const rows = filtered.map(r => [
-    r.no, r.nama, r.unit, r.nip, r.status,
-    r.tglLahir ? fmtDate(r.tglLahir) : '',
-    r.tglBergabung ? fmtDate(r.tglBergabung) : '',
-    r.tglBergabung ? calcMasaKerja(r.tglBergabung) : '',
-    fmtDate(r.strTerbit), fmtDate(r.strAkhir),
-    fmtDate(r.sipTerbit), fmtDate(r.sipAkhir),
-    fmtDate(r.rkkTerbit), fmtDate(r.rkkAkhir),
-    r.ket
-  ]);
+    const rows = filtered.map(r => [
+      r.no, r.nama, r.unit, r.nip, r.status,
+      r.tglLahir ? fmtDate(r.tglLahir) : '',
+      r.tglBergabung ? fmtDate(r.tglBergabung) : '',
+      r.tglBergabung ? calcMasaKerja(r.tglBergabung) : '',
+      fmtDate(r.strTerbit), fmtDate(r.strAkhir),
+      fmtDate(r.sipTerbit), fmtDate(r.sipAkhir),
+      fmtDate(r.rkkTerbit), fmtDate(r.rkkAkhir),
+      r.ket || ''
+    ]);
 
-  const wsData = [headers, ...rows];
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
+    const wsData = [headers, ...rows];
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-  // Lebar kolom
-  ws['!cols'] = [
-    {wch:5},{wch:32},{wch:26},{wch:16},{wch:10},
-    {wch:14},{wch:16},{wch:18},
-    {wch:14},{wch:14},{wch:14},{wch:14},
-    {wch:14},{wch:14},{wch:24}
-  ];
+    // Lebar kolom
+    ws['!cols'] = [
+      {wch:5},{wch:32},{wch:26},{wch:16},{wch:10},
+      {wch:14},{wch:16},{wch:18},
+      {wch:14},{wch:14},{wch:14},{wch:14},
+      {wch:14},{wch:14},{wch:24}
+    ];
 
-  // Style header row — biru tua, teks putih, bold
-  const headerStyle = {
-    font:    { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 },
-    fill:    { fgColor: { rgb: '1A5FA8' } },
-    alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
-    border: {
-      top:    { style: 'thin', color: { rgb: 'B8CDE0' } },
-      bottom: { style: 'thin', color: { rgb: 'B8CDE0' } },
-      left:   { style: 'thin', color: { rgb: 'B8CDE0' } },
-      right:  { style: 'thin', color: { rgb: 'B8CDE0' } },
-    }
-  };
+    // Freeze baris pertama (header)
+    ws['!freeze'] = { xSplit: 0, ySplit: 1, topLeftCell: 'A2', activePane: 'bottomLeft' };
 
-  headers.forEach((_, ci) => {
-    const cell = XLSX.utils.encode_cell({ r: 0, c: ci });
-    if (ws[cell]) ws[cell].s = headerStyle;
-  });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Data Perawat');
 
-  // Style data rows — alternating color + border
-  rows.forEach((row, ri) => {
-    const isEven = ri % 2 === 0;
-    row.forEach((_, ci) => {
-      const cell = XLSX.utils.encode_cell({ r: ri + 1, c: ci });
-      if (!ws[cell]) return;
-      ws[cell].s = {
-        fill: { fgColor: { rgb: isEven ? 'FFFFFF' : 'EDF2F8' } },
-        font: { sz: 10 },
-        alignment: { vertical: 'center', wrapText: false },
-        border: {
-          top:    { style: 'thin', color: { rgb: 'D1DCE8' } },
-          bottom: { style: 'thin', color: { rgb: 'D1DCE8' } },
-          left:   { style: 'thin', color: { rgb: 'D1DCE8' } },
-          right:  { style: 'thin', color: { rgb: 'D1DCE8' } },
-        }
-      };
-      // Warna merah untuk kolom kadaluarsa
-      const colKey = ['','','','','','','','','strTerbit','strAkhir','sipTerbit','sipAkhir','rkkTerbit','rkkAkhir','ket'][ci];
-      if (['strAkhir','sipAkhir','rkkAkhir'].includes(colKey)) {
-        const rec = filtered[ri];
-        const val = rec[colKey];
-        if (isExp(val)) {
-          ws[cell].s.font = { ...ws[cell].s.font, color: { rgb: 'C0392B' }, bold: true };
-          ws[cell].s.fill = { fgColor: { rgb: 'FDECEA' } };
-        } else if (isWarnN(val, 180)) {
-          ws[cell].s.font = { ...ws[cell].s.font, color: { rgb: '92400E' }, bold: true };
-          ws[cell].s.fill = { fgColor: { rgb: 'FEF3C7' } };
-        }
-      }
-    });
-  });
-
-  // Freeze header row
-  ws['!freeze'] = { xSplit: 0, ySplit: 1 };
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Data Perawat');
-
-  const fname = `Keperawatan_SHND_${new Date().toISOString().slice(0,10)}.xlsx`;
-  XLSX.writeFile(wb, fname, { bookType: 'xlsx', type: 'binary', cellStyles: true });
-  showToast('✅ Excel berhasil diunduh');
+    const fname = `Keperawatan_SHND_${new Date().toISOString().slice(0,10)}.xlsx`;
+    XLSX.writeFile(wb, fname);
+    showToast('✅ Excel berhasil diunduh (' + filtered.length + ' data)');
+  } catch(err) {
+    console.error('Export error:', err);
+    showToast('❌ Gagal export: ' + err.message, true);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1745,6 +1700,7 @@ function statusB(s) {
   if (!s) return '—';
   return s==='Tetap'   ? `<span class="badge bb">Tetap</span>`
        : s==='Kontrak' ? `<span class="badge bt">Kontrak</span>`
+       : s==='Training' ? `<span class="badge ba">Training</span>`
        : `<span class="badge bm">${s}</span>`;
 }
 
