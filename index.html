@@ -1350,13 +1350,13 @@ function openDetail(rowIndex) {
       <div class="section-label" style="margin-bottom:10px">📎 Dokumen</div>
       <div class="doc-view-row">
         ${r.strDoc
-          ? `<button onclick="openDoc('${r.strDoc.replace(/'/g,"\\'")}','STR')" class="doc-view-btn doc-str">📄 Lihat STR</button>`
+          ? `<a href="${resolveDocUrl(r.strDoc)}" target="_blank" rel="noopener" class="doc-view-btn doc-str">📄 Lihat STR</a>`
           : `<span class="doc-view-btn doc-none">📄 STR belum ada</span>`}
         ${r.sipDoc
-          ? `<button onclick="openDoc('${r.sipDoc.replace(/'/g,"\\'")}','SIP')" class="doc-view-btn doc-sip">📋 Lihat SIP</button>`
+          ? `<a href="${resolveDocUrl(r.sipDoc)}" target="_blank" rel="noopener" class="doc-view-btn doc-sip">📋 Lihat SIP</a>`
           : `<span class="doc-view-btn doc-none">📋 SIP belum ada</span>`}
         ${r.rkkDoc
-          ? `<button onclick="openDoc('${r.rkkDoc.replace(/'/g,"\\'")}','RKK')" class="doc-view-btn doc-rkk">🏆 Lihat RKK</button>`
+          ? `<a href="${resolveDocUrl(r.rkkDoc)}" target="_blank" rel="noopener" class="doc-view-btn doc-rkk">🏆 Lihat RKK</a>`
           : `<span class="doc-view-btn doc-none">🏆 RKK belum ada</span>`}
       </div>
     </div>
@@ -1816,6 +1816,15 @@ let _docViewUrl = '';
 
 function openDocInBrowser() {
   if (_docViewUrl) window.open(_docViewUrl, '_blank', 'noopener');
+}
+
+function resolveDocUrl(url) {
+  if (!url) return '#';
+  const lh3 = url.match(/lh3\.googleusercontent\.com\/d\/([a-zA-Z0-9_-]+)/);
+  if (lh3) return 'https://drive.google.com/file/d/' + lh3[1] + '/view';
+  const driveFile = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([a-zA-Z0-9_-]+)/);
+  if (driveFile) return 'https://drive.google.com/file/d/' + driveFile[1] + '/view';
+  return url;
 }
 
 function openDoc(url, label) {
