@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#1a5fa8">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -658,8 +658,8 @@ td.mono{font-family:var(--mono);font-size:10px;color:#5a7a95}
       <span id="docZoomLabel" style="color:#fff;font-size:11px;font-weight:700;min-width:36px;text-align:center">100%</span>
       <button onclick="docZoom(0.25)" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#fff;width:34px;height:34px;border-radius:8px;font-size:18px;font-weight:700;cursor:pointer;line-height:1">+</button>
       <button onclick="docZoomReset()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:0 10px;height:34px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer">Reset</button>
-      <!-- Buka di browser -->
-      <a id="docViewerExtLink" href="#" target="_blank" style="display:inline-flex;align-items:center;gap:4px;padding:0 10px;height:34px;border-radius:8px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:11px;font-weight:700;text-decoration:none;white-space:nowrap">🔗 Browser</a>
+      <!-- Buka di browser default -->
+      <button id="docViewerExtLink" onclick="openDocInBrowser()" style="display:inline-flex;align-items:center;gap:4px;padding:0 10px;height:34px;border-radius:8px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:var(--font);border-style:solid">🔗 Buka Browser</button>
       <!-- Tutup -->
       <button onclick="closeDocViewer()" style="background:rgba(225,29,72,0.8);border:none;color:#fff;padding:0 12px;height:34px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">✕</button>
     </div>
@@ -1812,56 +1812,24 @@ function avatarHtml(foto, size='36px') {
 let docScale = 1;
 let docPanX  = 0;
 let docPanY  = 0;
+let _docViewUrl = '';
+
+function openDocInBrowser() {
+  if (_docViewUrl) window.open(_docViewUrl, '_blank', 'noopener');
+}
 
 function openDoc(url, label) {
   if (!url) { showToast('⚠️ URL dokumen tidak tersedia', true); return; }
 
-  let embedUrl = url;
-  let viewUrl  = url;
-
+  // Resolve viewable URL
+  let viewUrl = url;
   const lh3 = url.match(/lh3\.googleusercontent\.com\/d\/([a-zA-Z0-9_-]+)/);
-  if (lh3) {
-    embedUrl = 'https://drive.google.com/file/d/' + lh3[1] + '/preview';
-    viewUrl  = 'https://drive.google.com/file/d/' + lh3[1] + '/view';
-  }
+  if (lh3) viewUrl = 'https://drive.google.com/file/d/' + lh3[1] + '/view';
   const driveFile = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([a-zA-Z0-9_-]+)/);
-  if (driveFile) {
-    embedUrl = 'https://drive.google.com/file/d/' + driveFile[1] + '/preview';
-    viewUrl  = 'https://drive.google.com/file/d/' + driveFile[1] + '/view';
-  }
+  if (driveFile) viewUrl = 'https://drive.google.com/file/d/' + driveFile[1] + '/view';
 
-  const modal   = document.getElementById('modalDocViewer');
-  const frame   = document.getElementById('docViewerFrame');
-  const scroll  = document.getElementById('docViewerScroll');
-  const loading = document.getElementById('docViewerLoading');
-  const lbl     = document.getElementById('docViewerLabel');
-  const extLink = document.getElementById('docViewerExtLink');
-
-  lbl.textContent       = '📎 ' + label;
-  extLink.href          = viewUrl;
-  scroll.style.display  = 'none';
-  loading.style.display = 'flex';
-  modal.style.display   = 'flex';
-  document.body.style.overflow = 'hidden';
-
-  // Reset transform
-  docScale = 1; docPanX = 0; docPanY = 0;
-  applyDocTransform();
-  document.getElementById('docZoomLabel').textContent = '100%';
-
-  frame.onload = () => {
-    loading.style.display = 'none';
-    scroll.style.display  = 'block';
-    initDocPanZoom();
-  };
-  frame.onerror = () => {
-    loading.innerHTML = `
-      <div style="font-size:36px">⚠️</div>
-      <div style="font-size:13px;color:#fb7185;font-weight:700">Gagal memuat dokumen</div>
-      <div style="font-size:11px;color:#5a7a95;text-align:center;max-width:280px">
-        Klik "🔗 Browser" di atas untuk membuka dokumen</div>`;
-  };
-  frame.src = embedUrl;
+  // Langsung buka di browser/tab baru
+  window.open(viewUrl, '_blank', 'noopener');
 }
 
 function applyDocTransform(animate) {
