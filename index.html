@@ -322,6 +322,24 @@ td.mono{font-family:var(--mono);font-size:10px;color:#5a7a95}
   <select class="fi" id="fStatus" onchange="applyFilters()">
     <option value="">Semua Status</option><option>Tetap</option><option>Kontrak</option><option>Training</option>
   </select>
+  <select class="fi" id="fJenjangProfFilter" onchange="applyFilters()">
+    <option value="">Semua Jenjang Prof.</option>
+    <option>PK I</option><option>PK II</option><option>PK III</option><option>PK IV</option><option>PK V</option>
+  </select>
+  <select class="fi" id="fJenjangSHFilter" onchange="applyFilters()">
+    <option value="">Semua Jenjang PT. SH</option>
+    <option>Manajer Keperawatan</option>
+    <option>Komite Keperawatan</option>
+    <option>Kepala Ruangan/PJ</option>
+    <option>Perawat pelaksana dasar</option>
+    <option>Perawat pelaksana terampil</option>
+    <option>Perawat pelaksana lanjutan</option>
+    <option>Perawat pelaksana penyelia</option>
+    <option>Perawat pelaksana pratama</option>
+    <option>Perawat pelaksana muda</option>
+    <option>Perawat pelaksana madya</option>
+    <option>Perawat pelaksana utama</option>
+  </select>
   <select class="fi" id="fCond" onchange="onCondChange();applyFilters()">
     <option value="">Semua Kondisi</option>
     <optgroup label="── Kadaluarsa ──">
@@ -456,6 +474,34 @@ td.mono{font-family:var(--mono);font-size:10px;color:#5a7a95}
           <option>Tetap</option>
           <option>Kontrak</option>
           <option>Training</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Jenjang Karir Profesional</label>
+        <select class="fselect" id="fJenjangProfesional">
+          <option value="">-- Pilih --</option>
+          <option>PK I</option>
+          <option>PK II</option>
+          <option>PK III</option>
+          <option>PK IV</option>
+          <option>PK V</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Jenjang Karir PT. SH</label>
+        <select class="fselect" id="fJenjangSH">
+          <option value="">-- Pilih --</option>
+          <option>Manajer Keperawatan</option>
+          <option>Komite Keperawatan</option>
+          <option>Kepala Ruangan/PJ</option>
+          <option>Perawat pelaksana dasar</option>
+          <option>Perawat pelaksana terampil</option>
+          <option>Perawat pelaksana lanjutan</option>
+          <option>Perawat pelaksana penyelia</option>
+          <option>Perawat pelaksana pratama</option>
+          <option>Perawat pelaksana muda</option>
+          <option>Perawat pelaksana madya</option>
+          <option>Perawat pelaksana utama</option>
         </select>
       </div>
       <div class="fg">
@@ -643,7 +689,7 @@ td.mono{font-family:var(--mono);font-size:10px;color:#5a7a95}
 // ═══════════════════════════════════════════════════════════
 //  CONFIG
 // ═══════════════════════════════════════════════════════════
-const API = 'https://script.google.com/macros/s/AKfycbyeMxQ0NQfz4uBvYvqO5g-WHQ0DjdFV_TofbA_gjWhS1AKvQ5VQtlL5nCrJGniiiLw/exec';
+const API = 'https://script.google.com/macros/s/AKfycbzpMA4b0AWSifTwhNAdpNwA-14iaeXRJJgN4khB0SOFy6BzWH9u9hmZqhbrzLfMmU-9/exec';
 const PAGE_SIZE = 20;
 
 let allData   = [];
@@ -776,6 +822,8 @@ function applyFilters() {
   const q         = document.getElementById('fSearch').value.toLowerCase();
   const unit      = document.getElementById('fUnit').value;
   const stat      = document.getElementById('fStatus').value;
+  const jenjangProf = document.getElementById('fJenjangProfFilter').value;
+  const jenjangSH   = document.getElementById('fJenjangSHFilter').value;
   const cond      = document.getElementById('fCond').value;
   const tahun     = document.getElementById('fTahun').value;
   const tipeTahun = document.getElementById('fTipeTahun').value;
@@ -784,6 +832,8 @@ function applyFilters() {
     if (q && !r.nama.toLowerCase().includes(q) && !r.nip.toLowerCase().includes(q)) return false;
     if (unit && r.unit !== unit) return false;
     if (stat && r.status !== stat) return false;
+    if (jenjangProf && r.jenjangProfesional !== jenjangProf) return false;
+    if (jenjangSH   && r.jenjangSH !== jenjangSH) return false;
 
     // Filter kondisi
     if (cond) {
@@ -865,7 +915,7 @@ function applyFilters() {
 }
 
 function resetFilters() {
-  ['fSearch','fUnit','fStatus','fCond','fTahun','fTipeTahun'].forEach(id => {
+  ['fSearch','fUnit','fStatus','fJenjangProfFilter','fJenjangSHFilter','fCond','fTahun','fTipeTahun'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -935,6 +985,7 @@ function renderTable() {
     {l:'',k:'foto'},
     {l:'No',k:'no'},{l:'Nama Perawat',k:'nama'},{l:'Unit Kerja',k:'unit'},
     {l:'NIP',k:'nip'},{l:'Status',k:'status'},
+    {l:'Jenjang Karir Prof.',k:'jenjangProfesional'},{l:'Jenjang Karir PT. SH',k:'jenjangSH'},
     {l:'Tgl Lahir',k:'tglLahir'},{l:'Tgl Bergabung',k:'tglBergabung'},{l:'Masa Kerja',k:'masaKerja'},
     {l:'Berakhir STR',k:'strAkhir'},{l:'Berakhir SIP',k:'sipAkhir'},{l:'Berakhir RKK',k:'rkkAkhir'},
     {l:'Aksi',k:'aksi'}
@@ -955,6 +1006,8 @@ function renderTable() {
       <td style="max-width:160px;white-space:normal;font-size:11px">${r.unit||'—'}</td>
       <td class="mono">${r.nip||'—'}</td>
       <td>${statusB(r.status)}</td>
+      <td>${r.jenjangProfesional ? `<span class="badge bb">${r.jenjangProfesional}</span>` : '—'}</td>
+      <td style="max-width:160px;white-space:normal;font-size:11px">${r.jenjangSH||'—'}</td>
       <td class="mono">${r.tglLahir ? fmtDate(r.tglLahir) + bdayIndicator(r.tglLahir) : '—'}</td>
       <td class="mono">${r.tglBergabung ? fmtDate(r.tglBergabung) : '—'}</td>
       <td>${r.tglBergabung ? `<span class="masa-kerja-badge">⏱ ${r.masaKerja || calcMasaKerja(r.tglBergabung)}</span>` : '—'}</td>
@@ -1048,6 +1101,8 @@ function openEdit(rowIndex) {
   document.getElementById('fUnit2').value    = r.unit || '';
   document.getElementById('fNip').value      = r.nip  || '';
   document.getElementById('fStatus2').value  = r.status || '';
+  document.getElementById('fJenjangProfesional').value = r.jenjangProfesional || '';
+  document.getElementById('fJenjangSH').value          = r.jenjangSH || '';
   document.getElementById('fStrTerbit').value= r.strTerbit || '';
   document.getElementById('fStrAkhir').value = r.strAkhir  || '';
   // Auto centang Seumur Hidup jika kosong atau mengandung 'Seumur'
@@ -1145,6 +1200,8 @@ async function submitForm() {
       nama, unit,
       nip:        document.getElementById('fNip').value.trim(),
       status:     stat,
+      jenjangProfesional: document.getElementById('fJenjangProfesional').value,
+      jenjangSH:          document.getElementById('fJenjangSH').value,
       tglLahir:   document.getElementById('fTglLahir').value,
       tglBergabung: document.getElementById('fTglBergabung').value,
       strTerbit:  document.getElementById('fStrTerbit').value,
@@ -1275,6 +1332,8 @@ function openDetail(rowIndex) {
     <div class="detail-grid">
       <div class="detail-item"><div class="detail-item-lbl">NIP</div><div class="detail-item-val">${r.nip||'—'}</div></div>
       <div class="detail-item"><div class="detail-item-lbl">Status</div><div class="detail-item-val">${r.status||'—'}</div></div>
+      <div class="detail-item"><div class="detail-item-lbl">Jenjang Karir Profesional</div><div class="detail-item-val">${r.jenjangProfesional ? `<span class="badge bb">${r.jenjangProfesional}</span>` : '—'}</div></div>
+      <div class="detail-item"><div class="detail-item-lbl">Jenjang Karir PT. SH</div><div class="detail-item-val">${r.jenjangSH||'—'}</div></div>
       <div class="detail-item"><div class="detail-item-lbl">Tanggal Lahir</div><div class="detail-item-val">${r.tglLahir ? fmtDate(r.tglLahir) + ' ' + bdayIndicator(r.tglLahir) : '—'}</div></div>
       <div class="detail-item"><div class="detail-item-lbl">Tanggal Bergabung</div><div class="detail-item-val">${r.tglBergabung ? fmtDate(r.tglBergabung) : '—'}</div></div>
       <div class="detail-item" style="grid-column:span 2"><div class="detail-item-lbl">Masa Kerja</div><div class="detail-item-val">${r.tglBergabung ? `<span class="masa-kerja-badge">⏱ ${calcMasaKerja(r.tglBergabung)}</span>` : '—'}</div></div>
@@ -1387,6 +1446,8 @@ function resetForm() {
   });
   document.getElementById('fUnit2').value   = '';
   document.getElementById('fStatus2').value = '';
+  document.getElementById('fJenjangProfesional').value = '';
+  document.getElementById('fJenjangSH').value          = '';
   document.getElementById('masaKerjaPreviewRow').style.display = 'none';
   document.getElementById('fotoPreviewWrap').innerHTML = `
     <div class="foto-placeholder-ico">👤</div>
