@@ -876,16 +876,25 @@ window.addEventListener('DOMContentLoaded', fetchData);
 // ═══════════════════════════════════════════════════════════
 async function fetchData() {
   setDyn(`<div class="center-state"><div class="spinner"></div><div>Mengambil data dari Google Sheets…</div></div>`);
+  // Tampilkan loading di tab pelatihan juga sejak awal
+  const pltArea = document.getElementById('pltDynArea');
+  if (pltArea) pltArea.innerHTML = `<div class="center-state"><div class="spinner"></div><div>Mengambil data pelatihan…</div></div>`;
   document.getElementById('liveLabel').textContent = 'Memperbarui…';
   try {
-    const json = await callAPI({ action: 'list' });
+    // ── Jalankan keduanya PARALEL — hemat ~50% waktu loading ──
+    const [json] = await Promise.all([
+      callAPI({ action: 'list' }),
+      fetchPelatihanData(),          // mulai bersamaan, hasilnya di-cache
+    ]);
     if (!json.success) throw new Error(json.error || 'Gagal');
     allData = json.data;
     populateUnitFilter();
     updateStats();
     applyFilters();
     updateBdayBanner();
-    await fetchPelatihanData();
+    // Render pelatihan sekarang karena data sudah siap (tidak perlu tunggu lagi)
+    populatePltUnitFilter();
+    renderPelatihan();
     const t = new Date();
     document.getElementById('liveLabel').textContent =
       `Live · ${t.toLocaleDateString('id-ID')} ${t.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})}`;
@@ -2266,6 +2275,7 @@ function switchTab(tab) {
   document.getElementById('tabBtnPelatihan').classList.toggle('active', tab === 'pelatihan');
   if (tab === 'pelatihan') {
     populatePltUnitFilter();
+    // Cache sudah ada dari fetchData paralel — langsung render, tidak fetch ulang
     renderPelatihan();
   }
 }
@@ -2625,36 +2635,46 @@ async function loadPelatihanForm() {
   }
   document.getElementById('pltFormEmpty').style.display = 'none';
   document.getElementById('pltSaveBtn').style.display = 'none';
-  document.getElementById('pltItemGrid').innerHTML = '<div style="text-align:center;padding:32px;color:#94a3b8">⏳ Memuat data...</div>';
   document.getElementById('pltFormGrid').style.display = '';
 
-  // Selalu ambil data terbaru dari server
-  await fetchPelatihanData();
+  // ── Render langsung dari cache (tidak tunggu server) ──
+  const renderForm = () => {
+    const data = getPelatihanData();
+    const rd   = data[String(rowIndex)] || {};
+    let html = '';
+    PELATIHAN_LIST.forEach(plt => {
+      const rec = rd[plt] || {};
+      const id  = plt.replace(/[^a-zA-Z0-9]/g,'_');
+      const isTna = rec.tna === true;
+      const disabledAttr = isTna ? 'disabled style="opacity:.4"' : '';
+      html += `<div class="plt-training-item" id="plt_card_${id}" style="${isTna ? 'background:#f5f3ff;border-color:#c4b5fd' : ''}">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">
+          <div class="plt-training-name" style="margin-bottom:0">${plt}</div>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap;font-size:10px;font-weight:700;color:${isTna?'#5b21b6':'#7a9bb5'};background:${isTna?'#ede9fe':'#f1f5f9'};border:1px solid ${isTna?'#c4b5fd':'#cbd5e1'};border-radius:6px;padding:3px 8px;transition:all .15s" title="Centang jika pelatihan ini tidak sesuai TNA perawat ini">
+            <input type="checkbox" id="plt_tna_${id}" onchange="toggleTna('${id}')" ${isTna?'checked':''} style="width:13px;height:13px;accent-color:#7c3aed;cursor:pointer">
+            🚫 Tidak Sesuai TNA
+          </label>
+        </div>
+        <div class="plt-date-row"><label>Terbit</label>
+          <input type="date" id="plt_t_${id}" value="${rec.terbit||''}" ${disabledAttr}></div>
+        <div class="plt-date-row" style="margin-top:5px"><label>Berakhir</label>
+          <input type="date" id="plt_a_${id}" value="${rec.akhir||''}" ${disabledAttr}></div>
+      </div>`;
+    });
+    document.getElementById('pltItemGrid').innerHTML = html;
+    document.getElementById('pltSaveBtn').style.display = '';
+  };
 
-  const data = getPelatihanData();
-  const rd   = data[String(rowIndex)] || {};
-  let html = '';
-  PELATIHAN_LIST.forEach(plt => {
-    const rec = rd[plt] || {};
-    const id  = plt.replace(/[^a-zA-Z0-9]/g,'_');
-    const isTna = rec.tna === true;
-    const disabledAttr = isTna ? 'disabled style="opacity:.4"' : '';
-    html += `<div class="plt-training-item" id="plt_card_${id}" style="${isTna ? 'background:#f5f3ff;border-color:#c4b5fd' : ''}">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">
-        <div class="plt-training-name" style="margin-bottom:0">${plt}</div>
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap;font-size:10px;font-weight:700;color:${isTna?'#5b21b6':'#7a9bb5'};background:${isTna?'#ede9fe':'#f1f5f9'};border:1px solid ${isTna?'#c4b5fd':'#cbd5e1'};border-radius:6px;padding:3px 8px;transition:all .15s" title="Centang jika pelatihan ini tidak sesuai TNA perawat ini">
-          <input type="checkbox" id="plt_tna_${id}" onchange="toggleTna('${id}')" ${isTna?'checked':''} style="width:13px;height:13px;accent-color:#7c3aed;cursor:pointer">
-          🚫 Tidak Sesuai TNA
-        </label>
-      </div>
-      <div class="plt-date-row"><label>Terbit</label>
-        <input type="date" id="plt_t_${id}" value="${rec.terbit||''}" ${disabledAttr}></div>
-      <div class="plt-date-row" style="margin-top:5px"><label>Berakhir</label>
-        <input type="date" id="plt_a_${id}" value="${rec.akhir||''}" ${disabledAttr}></div>
-    </div>`;
-  });
-  document.getElementById('pltItemGrid').innerHTML = html;
-  document.getElementById('pltSaveBtn').style.display = '';
+  if (_pelatihanCache && Object.keys(_pelatihanCache).length > 0) {
+    // Cache ada — render langsung, refresh di background
+    renderForm();
+    fetchPelatihanData().then(renderForm).catch(() => {});
+  } else {
+    // Belum ada cache — tampilkan loading, fetch dulu
+    document.getElementById('pltItemGrid').innerHTML = '<div style="text-align:center;padding:32px;color:#94a3b8">⏳ Memuat data...</div>';
+    await fetchPelatihanData();
+    renderForm();
+  }
 }
 
 async function savePelatihan() {
