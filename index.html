@@ -222,6 +222,45 @@ td.mono{font-family:var(--mono);font-size:10px;color:#5a7a95}
 .confirm-msg{font-size:14px;font-weight:600;color:#1a2e45;margin-bottom:6px}
 .confirm-sub{font-size:12px;color:#3d5a7a}
 
+/* ── PASSWORD MODAL ── */
+.pwd-modal{background:#fff;border:1px solid #d1dce8;border-radius:16px;width:100%;max-width:360px;animation:slideUp .25s ease}
+.pwd-body{padding:28px 24px;text-align:center}
+.pwd-ico{font-size:44px;margin-bottom:10px}
+.pwd-title{font-size:15px;font-weight:800;color:#1a2e45;margin-bottom:6px}
+.pwd-sub{font-size:12px;color:#3d5a7a;margin-bottom:18px}
+.pwd-input-wrap{position:relative;display:flex;align-items:center}
+.pwd-input-wrap .finput{padding-right:40px;font-size:14px;letter-spacing:2px;text-align:center}
+.pwd-toggle{position:absolute;right:10px;background:none;border:none;cursor:pointer;font-size:16px;color:#7a9bb5;line-height:1;padding:4px}
+.pwd-err{font-size:11px;color:var(--rose-l);font-weight:700;margin-top:8px;min-height:18px}
+
+/* ── TAB NAVIGATION ── */
+.tab-nav{display:flex;gap:0;border-bottom:2px solid #d1dce8;margin-bottom:18px;background:#fff;border-radius:11px 11px 0 0;overflow:hidden;box-shadow:0 1px 4px rgba(26,95,168,.06)}
+.tab-btn{padding:11px 20px;font-size:12px;font-weight:700;border:none;background:none;cursor:pointer;color:#7a9bb5;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .18s;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.tab-btn:hover{color:#1a5fa8;background:#f5f8fc}
+.tab-btn.active{color:#1a5fa8;border-bottom-color:#1a5fa8;background:#fff}
+.tab-panel{display:none}.tab-panel.active{display:block}
+
+/* ── PELATIHAN STATS ── */
+.plt-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:11px;margin-bottom:18px}
+
+/* ── PELATIHAN TABLE ── */
+.plt-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:9px;font-weight:700;white-space:nowrap}
+.plt-ok{background:#d1fae5;color:#065f46;border:1px solid #a7f3d0}
+.plt-warn{background:#fef3c7;color:#92400e;border:1px solid #fcd34d}
+.plt-exp{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
+.plt-none{background:#f1f5f9;color:#475569;border:1px solid #cbd5e1}
+.plt-tna{background:#ede9fe;color:#5b21b6;border:1px solid #c4b5fd}
+
+/* ── MODAL PELATIHAN ── */
+.plt-training-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.plt-training-item{background:#f5f8fc;border:1px solid #d1dce8;border-radius:9px;padding:10px 12px}
+.plt-training-name{font-size:11px;font-weight:700;color:#1a2e45;margin-bottom:6px}
+.plt-date-row{display:flex;gap:6px;align-items:center}
+.plt-date-row label{font-size:10px;color:#7a9bb5;font-weight:600;width:52px;flex-shrink:0}
+.plt-date-row input{flex:1;background:#fff;border:1px solid #c8d8e8;color:#1a2e45;font-family:var(--font);font-size:11px;padding:5px 8px;border-radius:6px;outline:none}
+.plt-date-row input:focus{border-color:#1a5fa8}
+@media(max-width:640px){.plt-training-grid{grid-template-columns:1fr}}
+
 /* ── TOAST ── */
 #toast{position:fixed;bottom:20px;right:20px;z-index:9999;background:#fff;border:1px solid var(--teal);color:#047857;padding:10px 16px;border-radius:10px;font-size:12px;font-weight:700;transform:translateY(60px);opacity:0;transition:all .28s cubic-bezier(.4,0,.2,1);pointer-events:none;max-width:320px}
 #toast.on{transform:translateY(0);opacity:1}
@@ -294,6 +333,15 @@ td.mono{font-family:var(--mono);font-size:10px;color:#5a7a95}
 
 <!-- ═══ MAIN ═══════════════════════════════════════════════ -->
 <main>
+
+<!-- Tab Nav -->
+<div class="tab-nav">
+  <button class="tab-btn active" id="tabBtnPerawat" onclick="switchTab('perawat')">👩‍⚕️ Data Perawat</button>
+  <button class="tab-btn" id="tabBtnPelatihan" onclick="switchTab('pelatihan')">📋 Pelatihan</button>
+</div>
+
+<!-- ══ TAB: PERAWAT ══════════════════════════════════════ -->
+<div class="tab-panel active" id="tabPerawat">
 
 <!-- Birthday Notification Banner -->
 <div class="bday-banner" id="bdayBanner">
@@ -411,6 +459,56 @@ td.mono{font-family:var(--mono);font-size:10px;color:#5a7a95}
     <div class="center-state"><div class="spinner"></div><div>Mengambil data…</div></div>
   </div>
 </div>
+
+</div><!-- end tabPerawat -->
+
+<!-- ══ TAB: PELATIHAN ════════════════════════════════════ -->
+<div class="tab-panel" id="tabPelatihan">
+
+<!-- Pelatihan Stats -->
+<div class="plt-stats">
+  <div class="stat s1" style="cursor:default"><div class="stat-lbl">Total Record</div><div class="stat-val" id="pltTotal">—</div><div class="stat-sub">Semua data</div></div>
+  <div class="stat s4" style="cursor:default"><div class="stat-lbl">⚠️ Sudah ED</div><div class="stat-val" id="pltExp" style="color:var(--rose)">—</div><div class="stat-sub">Perlu diperbarui</div></div>
+  <div class="stat s3" style="cursor:default"><div class="stat-lbl">⏳ ≤ 1 Tahun</div><div class="stat-val" id="pltWarn3" style="color:var(--amber)">—</div><div class="stat-sub">Segera perpanjang</div></div>
+  <div class="stat s3" style="cursor:default"><div class="stat-lbl">⏳ ≤ 6 Bulan</div><div class="stat-val" id="pltWarn6" style="color:var(--amber)">—</div><div class="stat-sub">Pantau terus</div></div>
+  <div class="stat s2" style="cursor:default"><div class="stat-lbl">✅ Aktif</div><div class="stat-val" id="pltOk" style="color:var(--green)">—</div><div class="stat-sub">Masih berlaku</div></div>
+  <div class="stat s6" style="cursor:default"><div class="stat-lbl">— Belum Diisi</div><div class="stat-val" id="pltEmpty">—</div><div class="stat-sub">Belum ada data</div></div>
+</div>
+
+<!-- Pelatihan Filter + Actions -->
+<div class="fbar">
+  <label>Filter:</label>
+  <input class="fi fi-s" id="pltSearch" placeholder="🔍 Cari nama / pelatihan…" oninput="renderPelatihan()">
+  <select class="fi" id="pltFilterUnit" onchange="renderPelatihan()"><option value="">Semua Unit</option></select>
+  <select class="fi" id="pltFilterStatus" onchange="renderPelatihan()">
+    <option value="">Semua Status</option>
+    <option value="exp">Sudah ED</option>
+    <option value="warn3">ED ≤ 1 Tahun</option>
+    <option value="warn6">ED ≤ 6 Bulan</option>
+    <option value="ok">Aktif</option>
+    <option value="none">Belum Diisi</option>
+    <option value="tna">🚫 Tidak Sesuai TNA</option>
+  </select>
+  <select class="fi" id="pltFilterPelatihan" onchange="renderPelatihan()"><option value="">Semua Pelatihan</option></select>
+  <button class="btn btn-ghost btn-sm" onclick="resetPltFilter()">✕ Reset</button>
+  <button class="btn btn-teal btn-sm" onclick="exportPelatihanExcel()">⬇ Excel Matriks</button>
+</div>
+
+<!-- Pelatihan Table -->
+<div class="tcard">
+  <div class="tcard-head">
+    <div class="tcard-title">📋 Data Pelatihan Perawat</div>
+    <div class="tcard-meta">
+      <span class="cnt" id="pltCount">—</span>
+      <button class="btn btn-violet btn-sm" onclick="openPelatihanEdit()">＋ Input / Edit Pelatihan</button>
+    </div>
+  </div>
+  <div id="pltDynArea">
+    <div class="center-state"><div class="spinner"></div><div>Memuat data pelatihan…</div></div>
+  </div>
+</div>
+
+</div><!-- end tabPelatihan -->
 
 </main>
 
@@ -644,6 +742,68 @@ td.mono{font-family:var(--mono);font-size:10px;color:#5a7a95}
 </div>
 </div>
 
+<!-- ═══ MODAL: INPUT PELATIHAN ═══════════════════════════ -->
+<div class="overlay" id="modalPelatihan" onclick="if(event.target.id==='modalPelatihan')closeModal('modalPelatihan')">
+<div class="modal" style="max-width:780px">
+  <div class="modal-head">
+    <div class="modal-title">📋 Input / Edit Pelatihan</div>
+    <button class="modal-close" onclick="closeModal('modalPelatihan')">✕</button>
+  </div>
+  <div class="modal-body">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+      <div class="fg">
+        <label>Pilih Unit <span style="color:var(--rose-l)">*</span></label>
+        <select class="fselect" id="pltSelectUnit" onchange="onPltUnitChange()">
+          <option value="">-- Pilih Unit Dulu --</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Pilih Perawat <span style="color:var(--rose-l)">*</span></label>
+        <select class="fselect" id="pltSelectPerawat" onchange="loadPelatihanForm()" disabled style="opacity:.5">
+          <option value="">-- Pilih Unit Dulu --</option>
+        </select>
+      </div>
+    </div>
+    <div id="pltFormGrid" style="display:none">
+      <div class="section-label">Tanggal Terbit & Tanggal Berakhir per Pelatihan</div>
+      <div class="plt-training-grid" id="pltItemGrid"></div>
+    </div>
+    <div id="pltFormEmpty">
+      <div class="center-state" style="padding:24px"><div style="font-size:28px">👆</div><div>Pilih unit terlebih dahulu, lalu pilih nama perawat</div></div>
+    </div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-ghost" onclick="closeModal('modalPelatihan')">Batal</button>
+    <button class="btn btn-violet" id="pltSaveBtn" onclick="savePelatihan()" style="display:none">💾 Simpan Pelatihan</button>
+  </div>
+</div>
+</div>
+
+<!-- ═══ MODAL: KONFIRMASI PASSWORD ═══════════════════════ -->
+<div class="overlay" id="modalPassword" onclick="closePwdIfBg(event)">
+<div class="pwd-modal">
+  <div class="modal-head">
+    <div class="modal-title">🔐 Konfirmasi Identitas</div>
+    <button class="modal-close" onclick="closeModal('modalPassword')">✕</button>
+  </div>
+  <div class="pwd-body">
+    <div class="pwd-ico" id="pwdIco">🔑</div>
+    <div class="pwd-title" id="pwdTitle">Masukkan Password</div>
+    <div class="pwd-sub" id="pwdSub">Aksi ini membutuhkan verifikasi password admin.</div>
+    <div class="pwd-input-wrap">
+      <input class="finput" type="password" id="pwdInput" placeholder="••••••••"
+        onkeydown="if(event.key==='Enter')confirmPwd()" oninput="clearPwdErr()">
+      <button class="pwd-toggle" onclick="togglePwdVisible()">👁</button>
+    </div>
+    <div class="pwd-err" id="pwdErr"></div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-ghost" onclick="closeModal('modalPassword')">Batal</button>
+    <button class="btn btn-blue" onclick="confirmPwd()">✅ Konfirmasi</button>
+  </div>
+</div>
+</div>
+
 <div id="toast"></div>
 
 <!-- ═══ MODAL: DOCUMENT VIEWER FULLSCREEN + ZOOM ═════════ -->
@@ -689,7 +849,7 @@ td.mono{font-family:var(--mono);font-size:10px;color:#5a7a95}
 // ═══════════════════════════════════════════════════════════
 //  CONFIG
 // ═══════════════════════════════════════════════════════════
-const API = 'https://script.google.com/macros/s/AKfycbzpMA4b0AWSifTwhNAdpNwA-14iaeXRJJgN4khB0SOFy6BzWH9u9hmZqhbrzLfMmU-9/exec';
+const API = 'https://script.google.com/macros/s/AKfycbwOsis7KWQ0gwx33AM_1mIeLzIaf6NdFAb78FxPZUWl7ip3-QtcPeuTICeyfNfTnjCm/exec';
 const PAGE_SIZE = 20;
 
 let allData   = [];
@@ -722,6 +882,7 @@ async function fetchData() {
     updateStats();
     applyFilters();
     updateBdayBanner();
+    await fetchPelatihanData();
     const t = new Date();
     document.getElementById('liveLabel').textContent =
       `Live · ${t.toLocaleDateString('id-ID')} ${t.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})}`;
@@ -1089,6 +1250,15 @@ function openAdd() {
 //  MODAL: EDIT
 // ═══════════════════════════════════════════════════════════
 function openEdit(rowIndex) {
+  requirePassword(
+    '✏️',
+    'Konfirmasi Edit Data',
+    'Masukkan password admin untuk mengubah data perawat.',
+    () => _doOpenEdit(rowIndex)
+  );
+}
+
+function _doOpenEdit(rowIndex) {
   const r = allData.find(x => Number(x.rowIndex) === Number(rowIndex));
   if (!r) return;
   resetForm();
@@ -1146,6 +1316,65 @@ function openEdit(rowIndex) {
 
   closeModal('modalDetail');
   openModal('modalForm');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PASSWORD GUARD
+// ═══════════════════════════════════════════════════════════
+const ADMIN_PASSWORD = 'shnd2026'; // ← Ganti password di sini
+
+let _pwdCallback   = null;
+let _pwdVisible    = false;
+let _pwdLastOkTime = 0;
+const PWD_SESSION_MS = 5 * 60 * 1000; // 5 menit — tidak perlu ulang input
+
+function requirePassword(ico, title, sub, callback) {
+  // Jika sudah verifikasi dalam 5 menit terakhir, langsung jalankan
+  if (Date.now() - _pwdLastOkTime < PWD_SESSION_MS) {
+    callback();
+    return;
+  }
+  _pwdCallback = callback;
+  document.getElementById('pwdIco').textContent   = ico;
+  document.getElementById('pwdTitle').textContent = title;
+  document.getElementById('pwdSub').textContent   = sub;
+  document.getElementById('pwdInput').value       = '';
+  document.getElementById('pwdErr').textContent   = '';
+  _pwdVisible = false;
+  document.getElementById('pwdInput').type = 'password';
+  openModal('modalPassword');
+  setTimeout(() => document.getElementById('pwdInput').focus(), 100);
+}
+
+function confirmPwd() {
+  const val = document.getElementById('pwdInput').value;
+  if (val === ADMIN_PASSWORD) {
+    _pwdLastOkTime = Date.now();
+    closeModal('modalPassword');
+    if (_pwdCallback) { _pwdCallback(); _pwdCallback = null; }
+  } else {
+    document.getElementById('pwdErr').textContent = '❌ Password salah. Coba lagi.';
+    document.getElementById('pwdInput').value = '';
+    document.getElementById('pwdInput').focus();
+    // Shake animation
+    const inp = document.getElementById('pwdInput');
+    inp.style.borderColor = 'var(--rose-l)';
+    setTimeout(() => { inp.style.borderColor = ''; }, 1200);
+  }
+}
+
+function clearPwdErr() {
+  document.getElementById('pwdErr').textContent = '';
+  document.getElementById('pwdInput').style.borderColor = '';
+}
+
+function togglePwdVisible() {
+  _pwdVisible = !_pwdVisible;
+  document.getElementById('pwdInput').type = _pwdVisible ? 'text' : 'password';
+}
+
+function closePwdIfBg(e) {
+  if (e.target.id === 'modalPassword') closeModal('modalPassword');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1375,6 +1604,15 @@ function openDetail(rowIndex) {
 //  DELETE
 // ═══════════════════════════════════════════════════════════
 function confirmDelete(no) {
+  requirePassword(
+    '🗑️',
+    'Konfirmasi Hapus Data',
+    'Masukkan password admin untuk menghapus data ini secara permanen.',
+    () => _doConfirmDelete(no)
+  );
+}
+
+function _doConfirmDelete(no) {
   const r = allData.find(x => x.no === no);
   document.getElementById('confirmMsg').textContent = `Hapus data "${r?.nama || 'ini'}"?`;
   document.getElementById('confirmSub').textContent = 'Data akan dihapus dari Google Sheets. Tidak dapat dibatalkan.';
@@ -2008,6 +2246,471 @@ function showToast(msg, err=false) {
 }
 
 function setDyn(html) { document.getElementById('dynArea').innerHTML = html; }
+
+// ═══════════════════════════════════════════════════════════
+//  TAB NAVIGATION
+// ═══════════════════════════════════════════════════════════
+function switchTab(tab) {
+  document.getElementById('tabPerawat').classList.toggle('active', tab === 'perawat');
+  document.getElementById('tabPelatihan').classList.toggle('active', tab === 'pelatihan');
+  document.getElementById('tabBtnPerawat').classList.toggle('active', tab === 'perawat');
+  document.getElementById('tabBtnPelatihan').classList.toggle('active', tab === 'pelatihan');
+  if (tab === 'pelatihan') {
+    populatePltUnitFilter();
+    renderPelatihan();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DAFTAR NAMA PELATIHAN
+// ═══════════════════════════════════════════════════════════
+const PELATIHAN_LIST = [
+  'BHD','Mutu Pelayanan Rumah Sakit','K3RS','Budaya Keselamatan RS','PPI',
+  'Code-code (Code Red, Code Blue, Code Grey, Code Black, Code Pink, Code Green)',
+  'Hak dan Kewajiban Pasien','Komunikasi Efektif/ Komunikasi Theraupetik',
+  'EWS','Teknik Aseptik/dispensing aseptik','Asesmen Pasien','Asuhan Pasien Terminal',
+  'Informed Consent','Transfer Pasien','POCT GD (Point Of Care Test Glucosa Darah)',
+  'Manajemen nyeri','Pelayanan Risiko Tinggi ( TB,HIV dan Geriatri, Imunospresan)',
+  'TB','HIV','Geriatri','Imonosspresan','Second opinion',
+  'Manajemen data Indikator Mutu','Manajemen Risiko','Pelatihan BHL','PPRA',
+  'Instruktur Klinik','Manajemen bangsal/ruang rawat',
+  'Pelatihan perencanaan strategis ruangan internal','Pelatihan Team Building',
+  'Manajemen Bidang','manajemen komplin','Metodelogi Instrukturt','UTILITAS'
+];
+
+// ═══════════════════════════════════════════════════════════
+//  STORAGE PELATIHAN — Google Sheets via API
+// ═══════════════════════════════════════════════════════════
+// Cache lokal agar tabel tidak perlu refetch setiap render
+let _pelatihanCache = null;
+
+function getPelatihanData() {
+  return _pelatihanCache || {};
+}
+function savePelatihanData(data) {
+  _pelatihanCache = data;
+}
+
+// Ambil dari Sheets (dipanggil saat fetchData)
+async function fetchPelatihanData() {
+  try {
+    const json = await callAPI({ action: 'getPelatihan' });
+    if (json.success) {
+      _pelatihanCache = json.data || {};
+    }
+  } catch(e) {
+    console.warn('Gagal load data pelatihan:', e.message);
+    _pelatihanCache = _pelatihanCache || {};
+  }
+}
+
+// Simpan ke Sheets
+async function savePelatihanToSheets(data) {
+  const res = await fetch(API, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'savePelatihan', data }),
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error || 'Gagal simpan pelatihan');
+  _pelatihanCache = data;
+  return json;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  HELPER STATUS PELATIHAN
+// ═══════════════════════════════════════════════════════════
+function getPltStatus(akhirStr, tna) {
+  if (tna) return 'tna';
+  if (!akhirStr) return 'none';
+  const d = new Date(akhirStr); if (isNaN(d)) return 'none';
+  const diff = (d - TODAY) / (1000*60*60*24);
+  if (diff < 0)   return 'exp';
+  if (diff <= 365) return 'warn3';
+  if (diff <= 180) return 'warn6';
+  return 'ok';
+}
+function pltStatusBadge(status) {
+  const map = {
+    exp:   ['plt-exp',  '⚠️ ED'],
+    warn3: ['plt-warn', '⏳ ≤1 Thn'],
+    warn6: ['plt-warn', '⏳ ≤6 Bln'],
+    ok:    ['plt-ok',   '✅ Aktif'],
+    none:  ['plt-none', '— Belum'],
+    tna:   ['plt-tna',  '🚫 TNA'],
+  };
+  const [cls, lbl] = map[status] || map.none;
+  return `<span class="plt-badge ${cls}">${lbl}</span>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  POPULATE FILTER UNIT TAB PELATIHAN
+// ═══════════════════════════════════════════════════════════
+function populatePltUnitFilter() {
+  const sel = document.getElementById('pltFilterUnit');
+  const units = [...new Set(allData.map(r => r.unit).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">Semua Unit</option>';
+  units.forEach(u => sel.innerHTML += `<option value="${u}">${u}</option>`);
+
+  const selP = document.getElementById('pltFilterPelatihan');
+  selP.innerHTML = '<option value="">Semua Pelatihan</option>';
+  PELATIHAN_LIST.forEach(p => selP.innerHTML += `<option value="${p}">${p}</option>`);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RENDER TABEL PELATIHAN
+// ═══════════════════════════════════════════════════════════
+function renderPelatihan() {
+  const q     = (document.getElementById('pltSearch')?.value || '').toLowerCase();
+  const unitF = document.getElementById('pltFilterUnit')?.value || '';
+  const statF = document.getElementById('pltFilterStatus')?.value || '';
+  const pltF  = document.getElementById('pltFilterPelatihan')?.value || '';
+  const data  = getPelatihanData();
+
+  // Kolom pelatihan yang ditampilkan
+  const pltCols = pltF ? PELATIHAN_LIST.filter(p => p === pltF) : PELATIHAN_LIST;
+
+  // Filter perawat
+  let nurses = allData.filter(r => {
+    if (unitF && r.unit !== unitF) return false;
+    if (q && !r.nama.toLowerCase().includes(q) && !(r.unit||'').toLowerCase().includes(q)) return false;
+    if (statF) {
+      const rd = data[r.rowIndex] || {};
+      const match = pltCols.some(plt => {
+        const s = getPltStatus((rd[plt]||{}).akhir);
+        if (statF === 'exp'   && s === 'exp')   return true;
+        if (statF === 'warn3' && s === 'warn3') return true;
+        if (statF === 'warn6' && ['warn3','warn6'].includes(s)) return true;
+        if (statF === 'ok'    && s === 'ok')    return true;
+        if (statF === 'none'  && s === 'none')  return true;
+        if (statF === 'tna'   && s === 'tna')   return true;
+        return false;
+      });
+      if (!match) return false;
+    }
+    return true;
+  });
+
+  // Update stats (dari seluruh data)
+  let tot=0,exp=0,w3=0,w6=0,ok=0,empty=0;
+  allData.forEach(r => {
+    const rd = data[r.rowIndex] || {};
+    PELATIHAN_LIST.forEach(plt => {
+      tot++;
+      const rec = rd[plt]||{};
+      const s = getPltStatus(rec.akhir, rec.tna);
+      if (s==='exp') exp++;
+      else if (s==='warn3') w3++;
+      else if (s==='warn6') w6++;
+      else if (s==='ok') ok++;
+      else if (s==='tna') { /* TNA tidak masuk hitungan */ tot--; }
+      else empty++;
+    });
+  });
+  document.getElementById('pltTotal').textContent  = tot;
+  document.getElementById('pltExp').textContent    = exp;
+  document.getElementById('pltWarn3').textContent  = w3;
+  document.getElementById('pltWarn6').textContent  = w6;
+  document.getElementById('pltOk').textContent     = ok;
+  document.getElementById('pltEmpty').textContent  = empty;
+  document.getElementById('pltCount').textContent  = `${nurses.length} perawat · ${pltCols.length} pelatihan`;
+
+  if (nurses.length === 0) {
+    document.getElementById('pltDynArea').innerHTML =
+      `<div class="center-state"><div style="font-size:32px">🔍</div><div>Tidak ada data yang sesuai</div></div>`;
+    return;
+  }
+
+  // ── MATRIKS: baris = perawat, kolom = pelatihan ──────────
+  let h = `<div class="scroll-x"><table style="table-layout:auto"><thead><tr style="background:#edf2f8">
+    <th style="position:sticky;left:0;background:#edf2f8;z-index:2;min-width:34px;border-right:1px solid #d1dce8">No</th>
+    <th style="position:sticky;left:34px;background:#edf2f8;z-index:2;min-width:180px;border-right:1px solid #d1dce8">Nama Perawat</th>
+    <th style="min-width:110px;border-right:1px solid #d1dce8">Unit</th>`;
+
+  pltCols.forEach(plt => {
+    const short = plt.length > 18 ? plt.substring(0,16)+'…' : plt;
+    h += `<th title="${plt}" style="min-width:82px;max-width:100px;white-space:normal;text-align:center;font-size:8.5px;line-height:1.35;padding:6px 4px">${short}</th>`;
+  });
+  h += `<th style="min-width:44px;border-left:1px solid #d1dce8">Aksi</th></tr></thead><tbody>`;
+
+  nurses.forEach((r, i) => {
+    const rd = data[r.rowIndex] || {};
+    let hasExp=false, hasWarn=false;
+    pltCols.forEach(plt => {
+      const rec2 = rd[plt]||{};
+      const s = getPltStatus(rec2.akhir, rec2.tna);
+      if (s==='exp') hasExp=true;
+      else if (s.startsWith('warn')) hasWarn=true;
+    });
+    const stickyBg = hasExp ? 'rgba(225,29,72,.06)' : hasWarn ? 'rgba(217,119,6,.06)' : '#fff';
+    const rowCls   = hasExp ? ' r-exp' : hasWarn ? ' r-warn' : '';
+
+    h += `<tr class="${rowCls}">
+      <td class="mono" style="position:sticky;left:0;background:${stickyBg};z-index:1;border-right:1px solid #e8eef5">${i+1}</td>
+      <td class="nm" style="position:sticky;left:34px;background:${stickyBg};z-index:1;min-width:180px;border-right:1px solid #e8eef5;cursor:pointer" onclick="openPelatihanEdit('${r.rowIndex}')" title="Klik untuk edit pelatihan">${r.nama||'—'} <span style="font-size:9px;color:#7a9bb5;font-weight:400">✏️</span></td>
+      <td style="font-size:11px;white-space:nowrap;border-right:1px solid #e8eef5">${r.unit||'—'}</td>`;
+
+    pltCols.forEach(plt => {
+      const rec = rd[plt] || {};
+      const s   = getPltStatus(rec.akhir, rec.tna);
+      const bgM = { exp:'rgba(225,29,72,.12)', warn3:'rgba(217,119,6,.14)', warn6:'rgba(217,119,6,.07)', ok:'rgba(5,150,105,.07)', none:'', tna:'rgba(124,58,237,.08)' };
+      const bg  = bgM[s] || '';
+      const tgl = s==='tna' ? '<span style="font-size:8.5px;color:#5b21b6;font-weight:700">🚫 TNA</span>' : (rec.akhir ? fmtDate(rec.akhir) : '—');
+      h += `<td style="text-align:center;font-size:9.5px;font-family:var(--mono);background:${bg};padding:5px 4px;white-space:nowrap">${tgl}</td>`;
+    });
+
+    h += `<td style="border-left:1px solid #e8eef5"><button class="btn btn-amber btn-sm btn-icon" onclick="openPelatihanEdit('${r.rowIndex}')" title="Edit">✏️</button></td></tr>`;
+  });
+
+  h += `</tbody></table></div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;padding:9px 16px;border-top:1px solid #d1dce8;background:#f5f8fc;font-size:10px;font-weight:700;align-items:center">
+    <span style="color:#5a7a95">Warna:</span>
+    <span style="padding:2px 8px;background:rgba(225,29,72,.12);border-radius:4px;color:#991b1b">⚠️ ED</span>
+    <span style="padding:2px 8px;background:rgba(217,119,6,.14);border-radius:4px;color:#92400e">⏳ ≤1 Thn</span>
+    <span style="padding:2px 8px;background:rgba(217,119,6,.07);border-radius:4px;color:#92400e">⏳ ≤6 Bln</span>
+    <span style="padding:2px 8px;background:rgba(5,150,105,.07);border-radius:4px;color:#065f46">✅ Aktif</span>
+    <span style="padding:2px 8px;background:#f1f5f9;border-radius:4px;color:#475569">— Belum</span>
+    <span style="padding:2px 8px;background:rgba(124,58,237,.08);border-radius:4px;color:#5b21b6">🚫 TNA</span>
+  </div>`;
+  document.getElementById('pltDynArea').innerHTML = h;
+}
+
+function resetPltFilter() {
+  document.getElementById('pltSearch').value = '';
+  document.getElementById('pltFilterUnit').value = '';
+  document.getElementById('pltFilterStatus').value = '';
+  document.getElementById('pltFilterPelatihan').value = '';
+  renderPelatihan();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  MODAL INPUT PELATIHAN
+// ═══════════════════════════════════════════════════════════
+function openPelatihanEdit(preselect) {
+  // Populate unit dropdown
+  const units = [...new Set([...allData].map(r => r.unit||'').filter(Boolean))].sort((a,b) => a.localeCompare(b));
+  const selUnit = document.getElementById('pltSelectUnit');
+  selUnit.innerHTML = '<option value="">-- Pilih Unit Dulu --</option>';
+  units.forEach(u => { selUnit.innerHTML += `<option value="${u}">${u}</option>`; });
+
+  const selPerawat = document.getElementById('pltSelectPerawat');
+  selPerawat.innerHTML = '<option value="">-- Pilih Unit Dulu --</option>';
+  selPerawat.disabled = true;
+  selPerawat.style.opacity = '.5';
+
+  if (preselect) {
+    const nurse = allData.find(r => String(r.rowIndex) === String(preselect));
+    if (nurse && nurse.unit) {
+      selUnit.value = nurse.unit;
+      onPltUnitChange();
+      selPerawat.value = preselect;
+      loadPelatihanForm();
+    }
+  } else {
+    document.getElementById('pltFormGrid').style.display = 'none';
+    document.getElementById('pltFormEmpty').style.display = '';
+    document.getElementById('pltSaveBtn').style.display = 'none';
+  }
+  openModal('modalPelatihan');
+}
+
+function onPltUnitChange() {
+  const unit = document.getElementById('pltSelectUnit').value;
+  const selPerawat = document.getElementById('pltSelectPerawat');
+
+  document.getElementById('pltFormGrid').style.display = 'none';
+  document.getElementById('pltFormEmpty').style.display = '';
+  document.getElementById('pltSaveBtn').style.display = 'none';
+
+  if (!unit) {
+    selPerawat.innerHTML = '<option value="">-- Pilih Unit Dulu --</option>';
+    selPerawat.disabled = true;
+    selPerawat.style.opacity = '.5';
+    return;
+  }
+
+  const nurses = [...allData]
+    .filter(r => (r.unit||'') === unit)
+    .sort((a,b) => (a.nama||'').localeCompare(b.nama||''));
+
+  selPerawat.innerHTML = '<option value="">-- Pilih Perawat --</option>';
+  nurses.forEach(r => {
+    selPerawat.innerHTML += `<option value="${r.rowIndex}">${r.nama}</option>`;
+  });
+  selPerawat.disabled = false;
+  selPerawat.style.opacity = '1';
+}
+
+function toggleTna(id) {
+  const cb   = document.getElementById(`plt_tna_${id}`);
+  const card = document.getElementById(`plt_card_${id}`);
+  const inT  = document.getElementById(`plt_t_${id}`);
+  const inA  = document.getElementById(`plt_a_${id}`);
+  const lbl  = cb?.closest('label');
+  if (cb?.checked) {
+    if (inT) { inT.value = ''; inT.disabled = true; inT.style.opacity = '.4'; }
+    if (inA) { inA.value = ''; inA.disabled = true; inA.style.opacity = '.4'; }
+    if (card) { card.style.background = '#f5f3ff'; card.style.borderColor = '#c4b5fd'; }
+    if (lbl)  { lbl.style.color='#5b21b6'; lbl.style.background='#ede9fe'; lbl.style.borderColor='#c4b5fd'; }
+  } else {
+    if (inT) { inT.disabled = false; inT.style.opacity = '1'; }
+    if (inA) { inA.disabled = false; inA.style.opacity = '1'; }
+    if (card) { card.style.background = ''; card.style.borderColor = ''; }
+    if (lbl)  { lbl.style.color='#7a9bb5'; lbl.style.background='#f1f5f9'; lbl.style.borderColor='#cbd5e1'; }
+  }
+}
+
+function loadPelatihanForm() {
+  const rowIndex = document.getElementById('pltSelectPerawat').value;
+  if (!rowIndex) {
+    document.getElementById('pltFormGrid').style.display = 'none';
+    document.getElementById('pltFormEmpty').style.display = '';
+    document.getElementById('pltSaveBtn').style.display = 'none';
+    return;
+  }
+  document.getElementById('pltFormEmpty').style.display = 'none';
+  document.getElementById('pltFormGrid').style.display = '';
+  document.getElementById('pltSaveBtn').style.display = '';
+
+  const data = getPelatihanData();
+  const rd   = data[rowIndex] || {};
+  let html = '';
+  PELATIHAN_LIST.forEach(plt => {
+    const rec = rd[plt] || {};
+    const id  = plt.replace(/[^a-zA-Z0-9]/g,'_');
+    const isTna = rec.tna === true;
+    const disabledAttr = isTna ? 'disabled style="opacity:.4"' : '';
+    html += `<div class="plt-training-item" id="plt_card_${id}" style="${isTna ? 'background:#f5f3ff;border-color:#c4b5fd' : ''}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">
+        <div class="plt-training-name" style="margin-bottom:0">${plt}</div>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap;font-size:10px;font-weight:700;color:${isTna?'#5b21b6':'#7a9bb5'};background:${isTna?'#ede9fe':'#f1f5f9'};border:1px solid ${isTna?'#c4b5fd':'#cbd5e1'};border-radius:6px;padding:3px 8px;transition:all .15s" title="Centang jika pelatihan ini tidak sesuai TNA perawat ini">
+          <input type="checkbox" id="plt_tna_${id}" onchange="toggleTna('${id}')" ${isTna?'checked':''} style="width:13px;height:13px;accent-color:#7c3aed;cursor:pointer">
+          🚫 Tidak Sesuai TNA
+        </label>
+      </div>
+      <div class="plt-date-row"><label>Terbit</label>
+        <input type="date" id="plt_t_${id}" value="${rec.terbit||''}" ${disabledAttr}></div>
+      <div class="plt-date-row" style="margin-top:5px"><label>Berakhir</label>
+        <input type="date" id="plt_a_${id}" value="${rec.akhir||''}" ${disabledAttr}></div>
+    </div>`;
+  });
+  document.getElementById('pltItemGrid').innerHTML = html;
+}
+
+async function savePelatihan() {
+  const rowIndex = document.getElementById('pltSelectPerawat').value;
+  if (!rowIndex) { showToast('⚠️ Pilih perawat dulu', true); return; }
+  const btn = document.getElementById('pltSaveBtn');
+  btn.disabled = true; btn.textContent = '⏳ Menyimpan…';
+
+  const data = getPelatihanData();
+  if (!data[rowIndex]) data[rowIndex] = {};
+  PELATIHAN_LIST.forEach(plt => {
+    const id  = plt.replace(/[^a-zA-Z0-9]/g,'_');
+    const tna = document.getElementById(`plt_tna_${id}`)?.checked || false;
+    const t   = tna ? '' : (document.getElementById(`plt_t_${id}`)?.value || '');
+    const a   = tna ? '' : (document.getElementById(`plt_a_${id}`)?.value || '');
+    data[rowIndex][plt] = { terbit: t, akhir: a, tna };
+  });
+  try {
+    await savePelatihanToSheets(data);
+    showToast('✅ Data pelatihan berhasil disimpan ke Google Sheets');
+    closeModal('modalPelatihan');
+    renderPelatihan();
+  } catch(e) {
+    showToast('❌ Gagal simpan: ' + e.message, true);
+  }
+  btn.disabled = false; btn.textContent = '💾 Simpan Pelatihan';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  EXPORT EXCEL MATRIKS (baris=pelatihan, kolom=perawat)
+// ═══════════════════════════════════════════════════════════
+function exportPelatihanExcel() {
+  const data = getPelatihanData();
+  const wb   = XLSX.utils.book_new();
+
+  // ── Sheet 1: Matriks Status ──────────────────────────────
+  const statusMap = { exp:'ED', warn3:'≤1 Thn', warn6:'≤6 Bln', ok:'Aktif', none:'', tna:'Tdk Sesuai TNA' };
+  const nurses = [...allData].sort((a,b)=>(a.nama||'').localeCompare(b.nama||''));
+
+  const hdrRow = ['Nama Pelatihan', ...nurses.map(n => n.nama + '\n(' + (n.unit||'-') + ')')];
+  const matrixRows = [hdrRow];
+  PELATIHAN_LIST.forEach(plt => {
+    const row = [plt];
+    nurses.forEach(n => {
+      const rec = (data[n.rowIndex]||{})[plt]||{};
+      const s   = getPltStatus(rec.akhir, rec.tna);
+      row.push(rec.akhir ? `${statusMap[s]} | ED: ${rec.akhir}` : '');
+    });
+    matrixRows.push(row);
+  });
+
+  const ws1 = XLSX.utils.aoa_to_sheet(matrixRows);
+  // Lebar kolom: kolom pertama lebar, sisanya sama
+  ws1['!cols'] = [{ wch:40 }, ...nurses.map(() => ({ wch:18 }))];
+
+  // Warnai cell berdasarkan status (menggunakan fill SheetJS)
+  const fillMap = {
+    exp:   'FFFCA5A5', // merah muda
+    warn3: 'FFFCD34D', // kuning
+    warn6: 'FFFDE68A', // kuning muda
+    ok:    'FFA7F3D0', // hijau muda
+  };
+  nurses.forEach((n, ci) => {
+    PELATIHAN_LIST.forEach((plt, ri) => {
+      const rec = (data[n.rowIndex]||{})[plt]||{};
+      const s   = getPltStatus(rec.akhir, rec.tna);
+      if (!fillMap[s]) return;
+      const cellRef = XLSX.utils.encode_cell({ r: ri+1, c: ci+1 });
+      if (!ws1[cellRef]) return;
+      ws1[cellRef].s = { fill: { fgColor: { rgb: fillMap[s] } }, font: { sz: 9 } };
+    });
+  });
+
+  XLSX.utils.book_append_sheet(wb, ws1, 'Matriks Status');
+
+  // ── Sheet 2: Detail (baris = perawat × pelatihan) ────────
+  const detailHdr = ['Nama Perawat','Unit','Status Kepegawaian','Nama Pelatihan','Tgl Terbit','Tgl Berakhir','Status'];
+  const detailRows = [detailHdr];
+  nurses.forEach(n => {
+    const rd = data[n.rowIndex]||{};
+    PELATIHAN_LIST.forEach(plt => {
+      const rec = rd[plt]||{};
+      const s   = getPltStatus(rec.akhir, rec.tna);
+      detailRows.push([
+        n.nama||'', n.unit||'', n.status||'', plt,
+        rec.terbit||'', rec.akhir||'', statusMap[s]||'Belum Diisi'
+      ]);
+    });
+  });
+  const ws2 = XLSX.utils.aoa_to_sheet(detailRows);
+  ws2['!cols'] = [{ wch:28 },{ wch:20 },{ wch:18 },{ wch:40 },{ wch:14 },{ wch:14 },{ wch:12 }];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Detail Pelatihan');
+
+  // ── Sheet 3: Ringkasan ED ────────────────────────────────
+  const expHdr = ['Nama Perawat','Unit','Nama Pelatihan','Tgl Berakhir','Status','Sisa Hari'];
+  const expRows = [expHdr];
+  nurses.forEach(n => {
+    const rd = data[n.rowIndex]||{};
+    PELATIHAN_LIST.forEach(plt => {
+      const rec = rd[plt]||{};
+      const s   = getPltStatus(rec.akhir, rec.tna);
+      if (!['exp','warn3','warn6'].includes(s)) return;
+      const d   = new Date(rec.akhir);
+      const sisa = Math.floor((d - TODAY)/(1000*60*60*24));
+      expRows.push([n.nama||'', n.unit||'', plt, rec.akhir||'', statusMap[s], sisa]);
+    });
+  });
+  const ws3 = XLSX.utils.aoa_to_sheet(expRows);
+  ws3['!cols'] = [{ wch:28 },{ wch:20 },{ wch:40 },{ wch:14 },{ wch:12 },{ wch:10 }];
+  XLSX.utils.book_append_sheet(wb, ws3, 'Perlu Diperbarui');
+
+  const now = new Date();
+  const tgl = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+  XLSX.writeFile(wb, `Pelatihan_SHND_${tgl}.xlsx`);
+  showToast('✅ Excel matriks pelatihan berhasil diunduh');
+}
 
 // Auto-refresh 5 menit
 setInterval(fetchData, 300000);
