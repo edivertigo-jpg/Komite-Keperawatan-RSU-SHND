@@ -849,7 +849,7 @@ td.mono{font-family:var(--mono);font-size:10px;color:#5a7a95}
 // ═══════════════════════════════════════════════════════════
 //  CONFIG
 // ═══════════════════════════════════════════════════════════
-const API = 'https://script.google.com/macros/s/AKfycbwOkQdKskIXdoGpCTRrjDOxworLkXBApDRoaliWqUXb7nOlfS2S6Gy5SmYWFY4DQoYE/exec';
+const API = 'https://script.google.com/macros/s/AKfycbytVXxKhNvxtIHKgNrDQ9o5jqRsBpgMFAGHif4zDvk6m2YslyyT-7BTD1hlPWevEnor/exec';
 const PAGE_SIZE = 20;
 
 let allData   = [];
@@ -2298,7 +2298,12 @@ async function fetchPelatihanData() {
   try {
     const json = await callAPI({ action: 'getPelatihan' });
     if (json.success) {
-      _pelatihanCache = json.data || {};
+      // Normalize: pastikan key selalu string agar cocok dengan r.rowIndex
+      const raw = json.data || {};
+      const normalized = {};
+      Object.keys(raw).forEach(k => { normalized[String(k)] = raw[k]; });
+      _pelatihanCache = normalized;
+      console.log('[Pelatihan] Loaded', Object.keys(normalized).length, 'records');
     }
   } catch(e) {
     console.warn('Gagal load data pelatihan:', e.message);
@@ -2310,6 +2315,7 @@ async function fetchPelatihanData() {
 async function savePelatihanToSheets(data) {
   const res = await fetch(API, {
     method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify({ action: 'savePelatihan', data }),
   });
   if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -2377,7 +2383,7 @@ function renderPelatihan() {
     if (unitF && r.unit !== unitF) return false;
     if (q && !r.nama.toLowerCase().includes(q) && !(r.unit||'').toLowerCase().includes(q)) return false;
     if (statF) {
-      const rd = data[r.rowIndex] || {};
+      const rd = data[String(r.rowIndex)] || {};
       const match = pltCols.some(plt => {
         const s = getPltStatus((rd[plt]||{}).akhir);
         if (statF === 'exp'   && s === 'exp')   return true;
@@ -2396,7 +2402,7 @@ function renderPelatihan() {
   // Update stats (dari seluruh data)
   let tot=0,exp=0,w3=0,w6=0,ok=0,empty=0;
   allData.forEach(r => {
-    const rd = data[r.rowIndex] || {};
+    const rd = data[String(r.rowIndex)] || {};
     PELATIHAN_LIST.forEach(plt => {
       tot++;
       const rec = rd[plt]||{};
@@ -2440,7 +2446,7 @@ function renderPelatihan() {
   h += `<th style="min-width:44px;border-left:1px solid #d1dce8">Aksi</th></tr></thead><tbody>`;
 
   nurses.forEach((r, i) => {
-    const rd = data[r.rowIndex] || {};
+    const rd = data[String(r.rowIndex)] || {};
     let hasExp=false, hasWarn=false;
     pltCols.forEach(plt => {
       const rec2 = rd[plt]||{};
@@ -2579,7 +2585,7 @@ function loadPelatihanForm() {
   document.getElementById('pltSaveBtn').style.display = '';
 
   const data = getPelatihanData();
-  const rd   = data[rowIndex] || {};
+  const rd   = data[String(rowIndex)] || {};
   let html = '';
   PELATIHAN_LIST.forEach(plt => {
     const rec = rd[plt] || {};
@@ -2610,13 +2616,14 @@ async function savePelatihan() {
   btn.disabled = true; btn.textContent = '⏳ Menyimpan…';
 
   const data = getPelatihanData();
-  if (!data[rowIndex]) data[rowIndex] = {};
+  const rIdx = String(rowIndex);
+  if (!data[rIdx]) data[rIdx] = {};
   PELATIHAN_LIST.forEach(plt => {
     const id  = plt.replace(/[^a-zA-Z0-9]/g,'_');
     const tna = document.getElementById(`plt_tna_${id}`)?.checked || false;
     const t   = tna ? '' : (document.getElementById(`plt_t_${id}`)?.value || '');
     const a   = tna ? '' : (document.getElementById(`plt_a_${id}`)?.value || '');
-    data[rowIndex][plt] = { terbit: t, akhir: a, tna };
+    data[rIdx][plt] = { terbit: t, akhir: a, tna };
   });
   try {
     await savePelatihanToSheets(data);
@@ -2660,7 +2667,7 @@ function exportPelatihanExcel() {
   pltCols.forEach(plt => {
     const row = [plt];
     nurses.forEach(n => {
-      const rec = (data[n.rowIndex]||{})[plt]||{};
+      const rec = (data[String(n.rowIndex)]||{})[plt]||{};
       const s   = getPltStatus(rec.akhir, rec.tna);
       row.push(rec.akhir ? `${statusMap[s]} | ED: ${rec.akhir}` : '');
     });
@@ -2680,7 +2687,7 @@ function exportPelatihanExcel() {
   };
   nurses.forEach((n, ci) => {
     pltCols.forEach((plt, ri) => {
-      const rec = (data[n.rowIndex]||{})[plt]||{};
+      const rec = (data[String(n.rowIndex)]||{})[plt]||{};
       const s   = getPltStatus(rec.akhir, rec.tna);
       if (!fillMap[s]) return;
       const cellRef = XLSX.utils.encode_cell({ r: ri+1, c: ci+1 });
