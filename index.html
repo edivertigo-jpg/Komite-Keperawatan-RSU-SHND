@@ -849,7 +849,7 @@ td.mono{font-family:var(--mono);font-size:10px;color:#5a7a95}
 // ═══════════════════════════════════════════════════════════
 //  CONFIG
 // ═══════════════════════════════════════════════════════════
-const API = 'https://script.google.com/macros/s/AKfycbxk0EViWyY_dBEPaLoK-TaKYX9pjSwV7wNctjG3L_vIVrgDP_gkdxCLF_o7N_-XA5la/exec';
+const API = 'https://script.google.com/macros/s/AKfycbzkPqgCSs9xFNRKn8lLNulR0B5xTcVxkX2LIVOGJIXfihlWDXfMO883c5Vv8TzaX_bN/exec';
 const PAGE_SIZE = 20;
 
 let allData   = [];
@@ -2297,21 +2297,13 @@ function savePelatihanData(data) {
 async function fetchPelatihanData() {
   try {
     const json = await callAPI({ action: 'getPelatihan' });
-    console.log('[Pelatihan] Raw response:', JSON.stringify(json).substring(0, 500));
+    console.log('[Pelatihan] Raw response:', JSON.stringify(json).substring(0, 300));
     if (json.success) {
       const raw = json.data || {};
-      const totalKeys = Object.keys(raw).length;
-      console.log('[Pelatihan] Keys dari server:', totalKeys);
-
-      if (totalKeys === 0) {
-        console.warn('[Pelatihan] ⚠️ Server kembalikan data kosong — cek sheet PelatihanData');
-        showToast('⚠️ Data pelatihan kosong di server', true);
-        _pelatihanCache = {};
-        return;
-      }
+      console.log('[Pelatihan] Keys dari server:', Object.keys(raw).length);
 
       // Normalize: key → string, tna → boolean
-      const normalized = {};
+      const fromServer = {};
       Object.keys(raw).forEach(k => {
         const pelObj = raw[k] || {};
         const normPel = {};
@@ -2323,14 +2315,26 @@ async function fetchPelatihanData() {
             tna:    rec.tna === true || rec.tna === 'true' || rec.tna === 'TNA',
           };
         });
-        normalized[String(k)] = normPel;
+        fromServer[String(k)] = normPel;
       });
+
+      // Pastikan SEMUA perawat di allData ada di cache (inisialisasi kosong jika belum ada)
+      // Ini mencegah saat save, perawat lain tidak ikut tersimpan
+      const normalized = {};
+      allData.forEach(r => {
+        const k = String(r.rowIndex);
+        normalized[k] = fromServer[k] || {};
+      });
+      // Tambahkan juga yang ada di server tapi mungkin tidak di allData
+      Object.keys(fromServer).forEach(k => {
+        if (!normalized[k]) normalized[k] = fromServer[k];
+      });
+
       _pelatihanCache = normalized;
       const filled = Object.keys(normalized).filter(k =>
-        Object.values(normalized[k]).some(p => p.akhir || p.tna)
+        Object.values(normalized[k]).some(p => p && (p.akhir || p.tna))
       ).length;
-      console.log(`[Pelatihan] ✅ Loaded ${Object.keys(normalized).length} records, ${filled} ada data`);
-      showToast(`✅ Pelatihan: ${Object.keys(normalized).length} perawat dimuat`);
+      console.log(`[Pelatihan] ✅ Cache: ${Object.keys(normalized).length} perawat, ${filled} ada data pelatihan`);
     } else {
       console.error('[Pelatihan] Server error:', json.error);
       showToast('❌ Gagal load pelatihan: ' + (json.error || 'unknown'), true);
