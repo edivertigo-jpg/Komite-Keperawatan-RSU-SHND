@@ -849,7 +849,7 @@ td.mono{font-family:var(--mono);font-size:10px;color:#5a7a95}
 // ═══════════════════════════════════════════════════════════
 //  CONFIG
 // ═══════════════════════════════════════════════════════════
-const API = 'https://script.google.com/macros/s/AKfycbwOsis7KWQ0gwx33AM_1mIeLzIaf6NdFAb78FxPZUWl7ip3-QtcPeuTICeyfNfTnjCm/exec';
+const API = 'https://script.google.com/macros/s/AKfycbwOkQdKskIXdoGpCTRrjDOxworLkXBApDRoaliWqUXb7nOlfS2S6Gy5SmYWFY4DQoYE/exec';
 const PAGE_SIZE = 20;
 
 let allData   = [];
@@ -2630,13 +2630,45 @@ function exportPelatihanExcel() {
   const data = getPelatihanData();
   const wb   = XLSX.utils.book_new();
 
+  // ── Ambil filter aktif (sama persis dgn renderPelatihan) ─
+  const q     = (document.getElementById('pltSearch')?.value || '').toLowerCase();
+  const unitF = document.getElementById('pltFilterUnit')?.value || '';
+  const statF = document.getElementById('pltFilterStatus')?.value || '';
+  const pltF  = document.getElementById('pltFilterPelatihan')?.value || '';
+
+  const pltCols = pltF ? PELATIHAN_LIST.filter(p => p === pltF) : PELATIHAN_LIST;
+
   // ── Sheet 1: Matriks Status ──────────────────────────────
   const statusMap = { exp:'ED', warn3:'≤1 Thn', warn6:'≤6 Bln', ok:'Aktif', none:'', tna:'Tdk Sesuai TNA' };
-  const nurses = [...allData].sort((a,b)=>(a.nama||'').localeCompare(b.nama||''));
+  const nurses = allData.filter(r => {
+    if (unitF && r.unit !== unitF) return false;
+    if (q && !r.nama.toLowerCase().includes(q) && !(r.unit||'').toLowerCase().includes(q)) return false;
+    if (statF) {
+      const rd = data[r.rowIndex] || {};
+      const match = pltCols.some(plt => {
+        const s = getPltStatus((rd[plt]||{}).akhir, (rd[plt]||{}).tna);
+        if (statF === 'exp'   && s === 'exp')   return true;
+        if (statF === 'warn3' && s === 'warn3') return true;
+        if (statF === 'warn6' && ['warn3','warn6'].includes(s)) return true;
+        if (statF === 'ok'    && s === 'ok')    return true;
+        if (statF === 'none'  && s === 'none')  return true;
+        if (statF === 'tna'   && s === 'tna')   return true;
+        return false;
+      });
+      if (!match) return false;
+    }
+    return true;
+  }).sort((a,b)=>(a.nama||'').localeCompare(b.nama||''));
 
+  if (!nurses.length) { showToast('⚠️ Tidak ada data untuk diexport', true); return; }
+
+  // Keterangan filter yang aktif (ditambahkan ke nama file)
+  const filterDesc = [unitF, statF ? statusMap[statF]||statF : '', pltF ? pltF.substring(0,20) : ''].filter(Boolean).join(' · ') || 'Semua';
+
+  // Info filter untuk judul sheet
   const hdrRow = ['Nama Pelatihan', ...nurses.map(n => n.nama + '\n(' + (n.unit||'-') + ')')];
   const matrixRows = [hdrRow];
-  PELATIHAN_LIST.forEach(plt => {
+  pltCols.forEach(plt => {
     const row = [plt];
     nurses.forEach(n => {
       const rec = (data[n.rowIndex]||{})[plt]||{};
@@ -2658,7 +2690,7 @@ function exportPelatihanExcel() {
     ok:    'FFA7F3D0', // hijau muda
   };
   nurses.forEach((n, ci) => {
-    PELATIHAN_LIST.forEach((plt, ri) => {
+    pltCols.forEach((plt, ri) => {
       const rec = (data[n.rowIndex]||{})[plt]||{};
       const s   = getPltStatus(rec.akhir, rec.tna);
       if (!fillMap[s]) return;
@@ -2675,7 +2707,7 @@ function exportPelatihanExcel() {
   const detailRows = [detailHdr];
   nurses.forEach(n => {
     const rd = data[n.rowIndex]||{};
-    PELATIHAN_LIST.forEach(plt => {
+    pltCols.forEach(plt => {
       const rec = rd[plt]||{};
       const s   = getPltStatus(rec.akhir, rec.tna);
       detailRows.push([
@@ -2693,7 +2725,7 @@ function exportPelatihanExcel() {
   const expRows = [expHdr];
   nurses.forEach(n => {
     const rd = data[n.rowIndex]||{};
-    PELATIHAN_LIST.forEach(plt => {
+    pltCols.forEach(plt => {
       const rec = rd[plt]||{};
       const s   = getPltStatus(rec.akhir, rec.tna);
       if (!['exp','warn3','warn6'].includes(s)) return;
@@ -2708,8 +2740,9 @@ function exportPelatihanExcel() {
 
   const now = new Date();
   const tgl = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
-  XLSX.writeFile(wb, `Pelatihan_SHND_${tgl}.xlsx`);
-  showToast('✅ Excel matriks pelatihan berhasil diunduh');
+  const safeFilter = filterDesc.replace(/[/\\?%*:|"<>]/g, '-').substring(0,40);
+  XLSX.writeFile(wb, `Pelatihan_SHND_${tgl}_${safeFilter}.xlsx`);
+  showToast(`✅ Excel diunduh: ${nurses.length} perawat · ${pltCols.length} pelatihan`);
 }
 
 // Auto-refresh 5 menit
