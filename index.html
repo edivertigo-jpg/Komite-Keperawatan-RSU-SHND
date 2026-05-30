@@ -850,7 +850,7 @@ td.mono{font-family:var(--mono);font-size:10px;color:#5a7a95}
 // ═══════════════════════════════════════════════════════════
 //  CONFIG
 // ═══════════════════════════════════════════════════════════
-const API = 'https://script.google.com/macros/s/AKfycbwMEjrMUjVp2FEWca2u5BaenT09Bmz3t4WWt6ie9rEWjg-Wu_s9EzME4dqe5tSBk9rY/exec';
+const API = 'https://script.google.com/macros/s/AKfycbz4_ZxjN1d2gcRfcqVDNLCZqiREfBuh74yMo4KQXG5LM_sQagE2KvaQQ3_8qsSTzKFa/exec';
 const PAGE_SIZE = 20;
 
 let allData   = [];
@@ -2698,7 +2698,7 @@ async function savePelatihan() {
 async function initPelatihanSheet() {
   const btn = document.getElementById('pltInitBtn');
   const total = allData.length;
-  if (!confirm(`Ini akan menulis SEMUA ${total} perawat ke sheet PelatihanData.\nProses butuh beberapa menit.\nLanjutkan?`)) return;
+  if (!confirm(`Ini akan menulis SEMUA ${total} perawat ke sheet PelatihanData.\nProses butuh 1-2 menit.\nLanjutkan?`)) return;
 
   btn.disabled = true;
 
@@ -2708,9 +2708,35 @@ async function initPelatihanSheet() {
     allData.forEach(r => { const k = String(r.rowIndex); if (!data[k]) data[k] = {}; });
     savePelatihanData(data);
 
-    // Kirim semua sekaligus — server handle
-    btn.textContent = `⏳ Menyimpan ${total} perawat...`;
-    await savePelatihanToSheets(data);
+    // Kirim batch per 200 perawat supaya tidak timeout/overload
+    const BATCH = 200;
+    const keys  = allData.map(r => String(r.rowIndex));
+    const totalBatch = Math.ceil(keys.length / BATCH);
+
+    for (let i = 0; i < keys.length; i += BATCH) {
+      const batchNum = Math.floor(i / BATCH) + 1;
+      btn.textContent = `⏳ Batch ${batchNum}/${totalBatch}...`;
+
+      const batchKeys = keys.slice(i, i + BATCH);
+      const batchData = {};
+      batchKeys.forEach(k => { batchData[k] = data[k] || {}; });
+
+      const isFirst = (i === 0); // batch pertama: clear sheet & tulis header
+      const res = await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'savePelatihanBatch',
+          data: batchData,
+          isFirst: isFirst,
+        }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'Batch gagal');
+
+      // Jeda kecil antar batch
+      if (i + BATCH < keys.length) await new Promise(r => setTimeout(r, 500));
+    }
 
     showToast(`✅ ${total} perawat berhasil disimpan ke sheet`);
     btn.textContent = '✅ Selesai';
