@@ -492,6 +492,7 @@ td.mono{font-family:var(--mono);font-size:10px;color:#5a7a95}
   <select class="fi" id="pltFilterPelatihan" onchange="renderPelatihan()"><option value="">Semua Pelatihan</option></select>
   <button class="btn btn-ghost btn-sm" onclick="resetPltFilter()">✕ Reset</button>
   <button class="btn btn-teal btn-sm" onclick="exportPelatihanExcel()">⬇ Excel Matriks</button>
+  <button class="btn btn-sm" id="pltInitBtn" onclick="initPelatihanSheet()" style="background:#f59e0b;color:#fff;font-weight:700" title="Jalankan sekali untuk inisialisasi semua perawat ke sheet PelatihanData">🔄 Init Sheet</button>
 </div>
 
 <!-- Pelatihan Table -->
@@ -849,7 +850,7 @@ td.mono{font-family:var(--mono);font-size:10px;color:#5a7a95}
 // ═══════════════════════════════════════════════════════════
 //  CONFIG
 // ═══════════════════════════════════════════════════════════
-const API = 'https://script.google.com/macros/s/AKfycbzkPqgCSs9xFNRKn8lLNulR0B5xTcVxkX2LIVOGJIXfihlWDXfMO883c5Vv8TzaX_bN/exec';
+const API = 'https://script.google.com/macros/s/AKfycbzwLNq0vmxInG4E7zOxoqB4s2ArUreDiD_se8Y7ic6AVzlNXs7M77VU4yU6ml2mlDIV/exec';
 const PAGE_SIZE = 20;
 
 let allData   = [];
@@ -2674,6 +2675,38 @@ async function savePelatihan() {
 // ═══════════════════════════════════════════════════════════
 //  EXPORT EXCEL MATRIKS (baris=pelatihan, kolom=perawat)
 // ═══════════════════════════════════════════════════════════
+// Init: simpan semua perawat (cache penuh) ke sheet — jalankan sekali saat setup
+async function initPelatihanSheet() {
+  const btn = document.getElementById('pltInitBtn');
+  const total = allData.length;
+  if (!confirm(`Ini akan menulis ${total} perawat ke sheet PelatihanData.\nLanjutkan?`)) return;
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Proses...';
+
+  try {
+    // Pastikan cache punya semua rowIndex
+    const data = getPelatihanData();
+    allData.forEach(r => {
+      const k = String(r.rowIndex);
+      if (!data[k]) data[k] = {};
+    });
+    savePelatihanData(data);
+
+    await savePelatihanToSheets(data);
+    showToast(`✅ ${total} perawat berhasil disimpan ke sheet PelatihanData`);
+    btn.textContent = '✅ Selesai';
+    setTimeout(() => {
+      btn.textContent = '🔄 Init Sheet';
+      btn.disabled = false;
+    }, 3000);
+  } catch(e) {
+    showToast('❌ Gagal: ' + e.message, true);
+    btn.disabled = false;
+    btn.textContent = '🔄 Init Sheet';
+  }
+}
+
 function exportPelatihanExcel() {
   const data = getPelatihanData();
   const wb   = XLSX.utils.book_new();
