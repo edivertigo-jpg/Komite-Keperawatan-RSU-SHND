@@ -850,7 +850,7 @@ td.mono{font-family:var(--mono);font-size:10px;color:#5a7a95}
 // ═══════════════════════════════════════════════════════════
 //  CONFIG
 // ═══════════════════════════════════════════════════════════
-const API = 'https://script.google.com/macros/s/AKfycbzwLNq0vmxInG4E7zOxoqB4s2ArUreDiD_se8Y7ic6AVzlNXs7M77VU4yU6ml2mlDIV/exec';
+const API = 'https://script.google.com/macros/s/AKfycbwMEjrMUjVp2FEWca2u5BaenT09Bmz3t4WWt6ie9rEWjg-Wu_s9EzME4dqe5tSBk9rY/exec';
 const PAGE_SIZE = 20;
 
 let allData   = [];
@@ -2463,6 +2463,14 @@ function renderPelatihan() {
   _pltFilteredNurses = nurses;
   _pltFilteredCols   = pltCols;
 
+  // Tampilkan banner Init jika semua data masih kosong
+  const totalFilled = nurses.filter(n => {
+    const rd = data[String(n.rowIndex)] || {};
+    return Object.values(rd).some(r => r && (r.akhir || r.tna));
+  }).length;
+  const bannerEl = document.getElementById('pltInitBanner');
+  if (bannerEl) bannerEl.style.display = totalFilled === 0 && allData.length > 0 ? '' : 'none';
+
   if (nurses.length === 0) {
     document.getElementById('pltDynArea').innerHTML =
       `<div class="center-state"><div style="font-size:32px">🔍</div><div>Tidak ada data yang sesuai</div></div>`;
@@ -2520,7 +2528,18 @@ function renderPelatihan() {
     <span style="padding:2px 8px;background:#f1f5f9;border-radius:4px;color:#475569">— Belum</span>
     <span style="padding:2px 8px;background:rgba(124,58,237,.08);border-radius:4px;color:#5b21b6">🚫 TNA</span>
   </div>`;
-  document.getElementById('pltDynArea').innerHTML = h;
+  // Tambahkan banner inisialisasi jika data masih kosong
+  const totalFilled2 = nurses.filter(n => {
+    const rd2 = data[String(n.rowIndex)] || {};
+    return Object.values(rd2).some(rec => rec && (rec.akhir || rec.tna));
+  }).length;
+  const banner = totalFilled2 === 0 && allData.length > 0
+    ? `<div style="margin:0 0 16px 0;padding:16px 20px;background:#fef3c7;border:2px solid #f59e0b;border-radius:12px;text-align:center">
+        <div style="font-size:16px;font-weight:700;color:#92400e;margin-bottom:6px">⚠️ Data pelatihan belum tersimpan di sheet</div>
+        <div style="color:#78350f;margin-bottom:12px;font-size:13px">Klik tombol berikut untuk menyimpan semua perawat ke Google Sheets</div>
+        <button onclick="initPelatihanSheet()" style="background:#f59e0b;color:#fff;font-weight:700;border:none;border-radius:8px;padding:10px 24px;font-size:14px;cursor:pointer">🔄 Inisialisasi Sheet Sekarang</button>
+      </div>` : '';
+  document.getElementById('pltDynArea').innerHTML = banner + h;
 }
 
 function resetPltFilter() {
@@ -2679,27 +2698,24 @@ async function savePelatihan() {
 async function initPelatihanSheet() {
   const btn = document.getElementById('pltInitBtn');
   const total = allData.length;
-  if (!confirm(`Ini akan menulis ${total} perawat ke sheet PelatihanData.\nLanjutkan?`)) return;
+  if (!confirm(`Ini akan menulis SEMUA ${total} perawat ke sheet PelatihanData.\nProses butuh beberapa menit.\nLanjutkan?`)) return;
 
   btn.disabled = true;
-  btn.textContent = '⏳ Proses...';
 
   try {
     // Pastikan cache punya semua rowIndex
     const data = getPelatihanData();
-    allData.forEach(r => {
-      const k = String(r.rowIndex);
-      if (!data[k]) data[k] = {};
-    });
+    allData.forEach(r => { const k = String(r.rowIndex); if (!data[k]) data[k] = {}; });
     savePelatihanData(data);
 
+    // Kirim semua sekaligus — server handle
+    btn.textContent = `⏳ Menyimpan ${total} perawat...`;
     await savePelatihanToSheets(data);
-    showToast(`✅ ${total} perawat berhasil disimpan ke sheet PelatihanData`);
+
+    showToast(`✅ ${total} perawat berhasil disimpan ke sheet`);
     btn.textContent = '✅ Selesai';
-    setTimeout(() => {
-      btn.textContent = '🔄 Init Sheet';
-      btn.disabled = false;
-    }, 3000);
+    renderPelatihan();
+    setTimeout(() => { btn.textContent = '🔄 Init Sheet'; btn.disabled = false; }, 4000);
   } catch(e) {
     showToast('❌ Gagal: ' + e.message, true);
     btn.disabled = false;
