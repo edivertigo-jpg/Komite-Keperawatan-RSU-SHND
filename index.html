@@ -2677,6 +2677,17 @@ async function savePelatihan() {
 // ═══════════════════════════════════════════════════════════
 //  EXPORT EXCEL MATRIKS (baris=pelatihan, kolom=perawat)
 // ═══════════════════════════════════════════════════════════
+// Format tanggal khusus Excel: DD-MM-YYYY
+function fmtExcel(v) {
+  if (!v) return '';
+  const d = new Date(v);
+  if (isNaN(d)) return String(v);
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const yyyy = d.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
+}
+
 function exportPelatihanExcel() {
   const data = getPelatihanData();
   const wb   = XLSX.utils.book_new();
@@ -2707,7 +2718,7 @@ function exportPelatihanExcel() {
     nurses.forEach(n => {
       const rec = (data[String(n.rowIndex)]||{})[plt]||{};
       const s   = getPltStatus(rec.akhir, rec.tna);
-      row.push(rec.akhir ? rec.akhir : '');
+      row.push(rec.akhir ? fmtExcel(rec.akhir) : '');
     });
     matrixRows.push(row);
   });
@@ -2746,7 +2757,7 @@ function exportPelatihanExcel() {
       const s   = getPltStatus(rec.akhir, rec.tna);
       detailRows.push([
         n.nama||'', n.unit||'', n.status||'', plt,
-        rec.terbit||'', rec.akhir||'', statusMap[s]||'Belum Diisi'
+        fmtExcel(rec.terbit), fmtExcel(rec.akhir), statusMap[s]||'Belum Diisi'
       ]);
     });
   });
@@ -2765,7 +2776,7 @@ function exportPelatihanExcel() {
       if (!['exp','warn3','warn6'].includes(s)) return;
       const d   = new Date(rec.akhir);
       const sisa = Math.floor((d - TODAY)/(1000*60*60*24));
-      expRows.push([n.nama||'', n.unit||'', plt, rec.akhir||'', statusMap[s], sisa]);
+      expRows.push([n.nama||'', n.unit||'', plt, fmtExcel(rec.akhir), statusMap[s], sisa]);
     });
   });
   const ws3 = XLSX.utils.aoa_to_sheet(expRows);
