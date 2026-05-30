@@ -2615,7 +2615,7 @@ function toggleTna(id) {
   }
 }
 
-function loadPelatihanForm() {
+async function loadPelatihanForm() {
   const rowIndex = document.getElementById('pltSelectPerawat').value;
   if (!rowIndex) {
     document.getElementById('pltFormGrid').style.display = 'none';
@@ -2624,8 +2624,12 @@ function loadPelatihanForm() {
     return;
   }
   document.getElementById('pltFormEmpty').style.display = 'none';
+  document.getElementById('pltSaveBtn').style.display = 'none';
+  document.getElementById('pltItemGrid').innerHTML = '<div style="text-align:center;padding:32px;color:#94a3b8">⏳ Memuat data...</div>';
   document.getElementById('pltFormGrid').style.display = '';
-  document.getElementById('pltSaveBtn').style.display = '';
+
+  // Selalu ambil data terbaru dari server
+  await fetchPelatihanData();
 
   const data = getPelatihanData();
   const rd   = data[String(rowIndex)] || {};
@@ -2650,6 +2654,7 @@ function loadPelatihanForm() {
     </div>`;
   });
   document.getElementById('pltItemGrid').innerHTML = html;
+  document.getElementById('pltSaveBtn').style.display = '';
 }
 
 async function savePelatihan() {
@@ -2669,13 +2674,13 @@ async function savePelatihan() {
     data[rIdx][plt] = { terbit: t, akhir: a, tna };
   });
   try {
-    // Kirim hanya data 1 perawat yang diedit, bukan semua data
+    // Kirim hanya data 1 perawat yang diedit
     const singleData = { [rIdx]: data[rIdx] };
     await savePelatihanToSheets(singleData);
-    // Update cache lokal setelah berhasil
-    _pelatihanCache = data;
     showToast('✅ Data pelatihan berhasil disimpan ke Google Sheets');
     closeModal('modalPelatihan');
+    // Fetch ulang dari server supaya cache selalu fresh (tidak pakai cache lokal)
+    await fetchPelatihanData();
     renderPelatihan();
   } catch(e) {
     showToast('❌ Gagal simpan: ' + e.message, true);
