@@ -849,7 +849,7 @@ td.mono{font-family:var(--mono);font-size:10px;color:#5a7a95}
 // ═══════════════════════════════════════════════════════════
 //  CONFIG
 // ═══════════════════════════════════════════════════════════
-const API = 'https://script.google.com/macros/s/AKfycbytVXxKhNvxtIHKgNrDQ9o5jqRsBpgMFAGHif4zDvk6m2YslyyT-7BTD1hlPWevEnor/exec';
+const API = 'https://script.google.com/macros/s/AKfycbxk0EViWyY_dBEPaLoK-TaKYX9pjSwV7wNctjG3L_vIVrgDP_gkdxCLF_o7N_-XA5la/exec';
 const PAGE_SIZE = 20;
 
 let allData   = [];
@@ -2297,16 +2297,47 @@ function savePelatihanData(data) {
 async function fetchPelatihanData() {
   try {
     const json = await callAPI({ action: 'getPelatihan' });
+    console.log('[Pelatihan] Raw response:', JSON.stringify(json).substring(0, 500));
     if (json.success) {
-      // Normalize: pastikan key selalu string agar cocok dengan r.rowIndex
       const raw = json.data || {};
+      const totalKeys = Object.keys(raw).length;
+      console.log('[Pelatihan] Keys dari server:', totalKeys);
+
+      if (totalKeys === 0) {
+        console.warn('[Pelatihan] ⚠️ Server kembalikan data kosong — cek sheet PelatihanData');
+        showToast('⚠️ Data pelatihan kosong di server', true);
+        _pelatihanCache = {};
+        return;
+      }
+
+      // Normalize: key → string, tna → boolean
       const normalized = {};
-      Object.keys(raw).forEach(k => { normalized[String(k)] = raw[k]; });
+      Object.keys(raw).forEach(k => {
+        const pelObj = raw[k] || {};
+        const normPel = {};
+        Object.keys(pelObj).forEach(plt => {
+          const rec = pelObj[plt] || {};
+          normPel[plt] = {
+            terbit: rec.terbit || '',
+            akhir:  rec.akhir  || '',
+            tna:    rec.tna === true || rec.tna === 'true' || rec.tna === 'TNA',
+          };
+        });
+        normalized[String(k)] = normPel;
+      });
       _pelatihanCache = normalized;
-      console.log('[Pelatihan] Loaded', Object.keys(normalized).length, 'records');
+      const filled = Object.keys(normalized).filter(k =>
+        Object.values(normalized[k]).some(p => p.akhir || p.tna)
+      ).length;
+      console.log(`[Pelatihan] ✅ Loaded ${Object.keys(normalized).length} records, ${filled} ada data`);
+      showToast(`✅ Pelatihan: ${Object.keys(normalized).length} perawat dimuat`);
+    } else {
+      console.error('[Pelatihan] Server error:', json.error);
+      showToast('❌ Gagal load pelatihan: ' + (json.error || 'unknown'), true);
     }
   } catch(e) {
-    console.warn('Gagal load data pelatihan:', e.message);
+    console.warn('[Pelatihan] Fetch error:', e.message);
+    showToast('❌ Error pelatihan: ' + e.message, true);
     _pelatihanCache = _pelatihanCache || {};
   }
 }
@@ -2329,13 +2360,13 @@ async function savePelatihanToSheets(data) {
 //  HELPER STATUS PELATIHAN
 // ═══════════════════════════════════════════════════════════
 function getPltStatus(akhirStr, tna) {
-  if (tna) return 'tna';
-  if (!akhirStr) return 'none';
+  if (tna === true || tna === 'true' || tna === 'TNA') return 'tna';
+  if (!akhirStr || String(akhirStr).trim() === '') return 'none';
   const d = new Date(akhirStr); if (isNaN(d)) return 'none';
   const diff = (d - TODAY) / (1000*60*60*24);
-  if (diff < 0)   return 'exp';
-  if (diff <= 365) return 'warn3';
+  if (diff < 0)    return 'exp';
   if (diff <= 180) return 'warn6';
+  if (diff <= 365) return 'warn3';
   return 'ok';
 }
 function pltStatusBadge(status) {
